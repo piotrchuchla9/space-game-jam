@@ -26,6 +26,7 @@ export class FlightScene extends Scene {
     this.load.image("ground", "assets/ground.png");
     this.load.image("gear", "assets/gear.png");
     this.load.image("bird", "assets/bird.png");
+    this.load.image("canister", "assets/canister.png");
 
     this.load.image("station_003", "assets/station_005.png");
   }
@@ -106,6 +107,13 @@ export class FlightScene extends Scene {
           this.zoneManager.removeGearByBody(gearBody);
           this.gearsCollected++;
           this.events.emit("gearCollected", this.gearsCollected);
+        }
+
+        if (labels.includes("rocket") && labels.includes("canister")) {
+          const canisterBody =
+            pair.bodyA.label === "canister" ? pair.bodyA : pair.bodyB;
+          this.zoneManager.removeCanisterByBody(canisterBody);
+          this.rocket.addFuel(this.rocket.maxFuel * 0.25);
         }
       }
     });

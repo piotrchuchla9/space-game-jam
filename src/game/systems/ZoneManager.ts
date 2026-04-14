@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { spawnObstacle, ObstacleType } from '../objects/Obstacle';
 import { spawnGear } from '../objects/Gear';
+import { spawnCanister } from '../objects/Canister';
 
 interface SpawnedEntity {
     graphic: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
@@ -11,8 +12,10 @@ export class ZoneManager {
     private scene: Scene;
     private obstacles: SpawnedEntity[] = [];
     private gears: SpawnedEntity[] = [];
+    private canisters: SpawnedEntity[] = [];
     private spawnTimer: number = 0;
     private gearTimer: number = 0;
+    private canisterTimer: number = 0;
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -21,6 +24,7 @@ export class ZoneManager {
     update(delta: number, altitude: number, rocketX: number) {
         this.spawnTimer += delta;
         this.gearTimer += delta;
+        this.canisterTimer += delta;
 
         // Spawn obstacles based on zone
         const spawnInterval = this.getSpawnInterval(altitude);
@@ -35,6 +39,14 @@ export class ZoneManager {
             if (this.gearTimer >= gearInterval) {
                 this.gearTimer = 0;
                 this.spawnGearNearRocket(altitude, rocketX);
+            }
+        }
+
+        // Spawn canisters — every ~5s, only during flight
+        if (altitude > 0) {
+            if (this.canisterTimer >= 5000) {
+                this.canisterTimer = 0;
+                this.spawnCanisterNearRocket(altitude, rocketX);
             }
         }
 
@@ -54,6 +66,9 @@ export class ZoneManager {
             e.graphic.setRotation(e.body.angle);
         }
         for (const e of this.gears) {
+            e.graphic.setPosition(e.body.position.x, e.body.position.y);
+        }
+        for (const e of this.canisters) {
             e.graphic.setPosition(e.body.position.x, e.body.position.y);
         }
     }
@@ -93,6 +108,15 @@ export class ZoneManager {
         this.gears.push(entity);
     }
 
+    private spawnCanisterNearRocket(altitude: number, rocketX: number) {
+        const x = rocketX + (Math.random() - 0.5) * 400;
+        const rocketY = 1100 - altitude;
+        const y = rocketY - 300 - Math.random() * 500;
+
+        const entity = spawnCanister(this.scene, x, y);
+        this.canisters.push(entity);
+    }
+
     private applyTurbulence() {
         // Emit event for FlightScene to apply force to rocket
         this.scene.events.emit('turbulence', {
@@ -125,6 +149,17 @@ export class ZoneManager {
             }
             return true;
         });
+
+        this.canisters = this.canisters.filter(e => {
+            if (!e.body.id) return false;
+            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
+            if (dist > maxDist) {
+                e.graphic.destroy();
+                this.scene.matter.world.remove(e.body);
+                return false;
+            }
+            return true;
+        });
     }
 
     removeObstacleByBody(obstacleBody: MatterJS.BodyType) {
@@ -145,11 +180,21 @@ export class ZoneManager {
         }
     }
 
+    removeCanisterByBody(canisterBody: MatterJS.BodyType) {
+        const idx = this.canisters.findIndex(c => c.body === canisterBody || c.body.id === canisterBody.id);
+        if (idx >= 0) {
+            this.canisters[idx].graphic.destroy();
+            this.scene.matter.world.remove(this.canisters[idx].body);
+            this.canisters.splice(idx, 1);
+        }
+    }
+
     destroy() {
-        for (const e of [...this.obstacles, ...this.gears]) {
+        for (const e of [...this.obstacles, ...this.gears, ...this.canisters]) {
             e.graphic.destroy();
         }
         this.obstacles = [];
         this.gears = [];
+        this.canisters = [];
     }
 }

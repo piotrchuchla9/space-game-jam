@@ -136,6 +136,10 @@ export class Rocket {
         );
     }
 
+    addFuel(amount: number) {
+        this.fuel = Math.min(this.maxFuel, this.fuel + amount);
+    }
+
     takeDamage(): boolean {
         if (this.shieldHP > 0) {
             this.shieldHP--;
