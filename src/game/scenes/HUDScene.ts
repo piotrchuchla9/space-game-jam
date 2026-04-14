@@ -5,6 +5,7 @@ export class HUDScene extends Scene {
     private zoneText!: GameObjects.Text;
     private fuelBar!: GameObjects.Rectangle;
     private gearText!: GameObjects.Text;
+    private speedText!: GameObjects.Text;
 
     constructor() {
         super('HUDScene');
@@ -25,6 +26,11 @@ export class HUDScene extends Scene {
             fontSize: '22px', color: '#ffcc00', fontFamily: 'monospace', fontStyle: 'bold'
         }).setOrigin(0.5, 0);
 
+        // Speed — below altitude
+        this.speedText = this.add.text(20, 80, 'SPD: 0', {
+            fontSize: '18px', color: '#aaffaa', fontFamily: 'monospace'
+        });
+
         // Fuel bar — top right
         this.add.text(700, 20, 'FUEL', {
             fontSize: '18px', color: '#aaaaaa', fontFamily: 'monospace'
@@ -41,10 +47,12 @@ export class HUDScene extends Scene {
             maxFuel: number;
             zone: string;
             gears: number;
+            speed: number;
         }) => {
             this.altText.setText(`ALT: ${data.altitude}`);
             this.zoneText.setText(data.zone);
             this.gearText.setText(`GEARS: ${data.gears}`);
+            this.speedText.setText(`SPD: ${data.speed}`);
 
             const fuelPct = Math.max(0, data.fuel / data.maxFuel);
             this.fuelBar.setSize(130 * fuelPct, 16);

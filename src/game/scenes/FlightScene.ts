@@ -166,12 +166,15 @@ export class FlightScene extends Scene {
     this.zoneManager.update(delta, this.altitude, this.rocket.body.position.x);
 
     // Emit HUD update
+    const vel = this.rocket.body.velocity;
+    const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
     this.events.emit("updateHUD", {
       altitude: Math.floor(this.altitude),
       fuel: this.rocket.fuel,
       maxFuel: this.rocket.maxFuel,
       zone: zoneName,
       gears: this.gearsCollected,
+      speed: Math.round(speed * 10),
     });
 
     // Update rocket graphic position (for camera)
