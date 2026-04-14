@@ -17,6 +17,7 @@ export class FlightScene extends Scene {
   private currentFollowOffsetY: number = 150;
   private flameSprites: Phaser.GameObjects.Ellipse[] = [];
   private thrusterSound!: Phaser.Sound.BaseSound;
+  private fuelAlertSound!: Phaser.Sound.BaseSound;
 
   constructor() {
     super("FlightScene");
@@ -32,6 +33,7 @@ export class FlightScene extends Scene {
     this.load.audio("gearPickup", "assets/gear.mp3");
     this.load.audio("birdHit", "assets/bird.mp3");
     this.load.audio("fuelPickup", "assets/fuel.mp3");
+    this.load.audio("fuelAlert", "assets/fuelAlert.mp3");
     this.load.image("canister", "assets/canister.png");
 
     this.load.image("station_003", "assets/station_005.png");
@@ -151,6 +153,10 @@ export class FlightScene extends Scene {
       loop: true,
       volume: GameState.getSfxVolume(),
     });
+    this.fuelAlertSound = this.sound.add("fuelAlert", {
+      loop: true,
+      volume: GameState.getSfxVolume(),
+    });
   }
 
   update(_time: number, delta: number) {
@@ -239,6 +245,13 @@ export class FlightScene extends Scene {
     const exhaustAngle = this.rocket.body.angle + Math.PI / 2;
     const exhaustX = this.rocket.body.position.x + Math.cos(exhaustAngle) * 40;
     const exhaustY = this.rocket.body.position.y + Math.sin(exhaustAngle) * 40;
+    const outOfFuel = this.rocket.fuel <= 0 && this.maxAltitude > 50;
+    if (outOfFuel && !this.fuelAlertSound.isPlaying) {
+      this.fuelAlertSound.play();
+    } else if (!outOfFuel && this.fuelAlertSound.isPlaying) {
+      this.fuelAlertSound.stop();
+    }
+
     if (this.isThrusting && !this.thrusterSound.isPlaying) {
       this.thrusterSound.play();
     } else if (!this.isThrusting && this.thrusterSound.isPlaying) {
@@ -312,12 +325,14 @@ export class FlightScene extends Scene {
   private crash() {
     if (this.crashed) return;
     this.crashed = true;
+    if (this.fuelAlertSound.isPlaying) this.fuelAlertSound.stop();
     this.sound.play("explosionCrunch", { volume: GameState.getSfxVolume() });
 
     this.cameras.main.shake(300, 0.02);
     this.time.delayedCall(400, () => {
       GameState.finishRun(this.maxAltitude, this.gearsCollected);
       if (this.thrusterSound.isPlaying) this.thrusterSound.stop();
+      if (this.fuelAlertSound.isPlaying) this.fuelAlertSound.stop();
       this.flameSprites.forEach((f) => f.destroy());
       this.flameSprites = [];
       this.inputManager.destroy();
