@@ -32,6 +32,9 @@ export class CrashScene extends Scene {
             this.tweens.add({ targets: content, alpha: 1, duration: 400 });
         });
 
+        const wreck = this.add.image(cx, 320, 'rocket').setAngle(-40).setScale(0.9);
+        content.add(wreck);
+
         const crashTitle = title(this, cx, 220, 'CRASH!', 84, { color: HEX.accentPink, strokeThickness: 9 });
         crashTitle.setScale(0);
         this.tweens.add({
@@ -39,9 +42,6 @@ export class CrashScene extends Scene {
             onComplete: () => this.cameras.main.shake(200, 0.005),
         });
         content.add(crashTitle);
-
-        const wreck = this.add.image(cx, 320, 'rocket').setAngle(-40).setScale(0.9);
-        content.add(wreck);
         for (let i = 0; i < 8; i++) {
             const p = this.add.circle(cx + PhaserMath.Between(-40, 40), 330, 4, COLORS.accentLilac, 0.8);
             this.tweens.add({

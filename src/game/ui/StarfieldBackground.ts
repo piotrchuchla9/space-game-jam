@@ -204,12 +204,19 @@ export class StarfieldBackground {
     private addMeteor(): GameObjects.Container {
         const group = this.scene.add.container(0, 0);
         const horizon = this.scene.add.graphics();
-        horizon.fillGradientStyle(COLORS.accentPink, COLORS.accentPink, COLORS.accentWarm, COLORS.accentWarm, 0.7);
-        horizon.fillRect(0, 1100, this.width, 180);
+        const top = this.height - 220;
+        const bands = 16;
+        for (let i = 0; i < bands; i++) {
+            const t = i / (bands - 1);
+            const color = t < 0.5 ? COLORS.accentPink : COLORS.accentWarm;
+            const alpha = t * 0.45;
+            horizon.fillStyle(color, alpha);
+            horizon.fillRect(0, top + (i * 220) / bands, this.width, 220 / bands + 1);
+        }
         group.add(horizon);
         this.scene.tweens.add({
             targets: horizon,
-            alpha: { from: 0.6, to: 0.9 },
+            alpha: { from: 0.8, to: 1 },
             duration: 1500,
             yoyo: true,
             repeat: -1,
