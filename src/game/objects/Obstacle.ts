@@ -12,7 +12,7 @@ export function spawnObstacle(scene: Scene, x: number, y: number, type: Obstacle
     const cfg = configs[type];
 
     // Visual
-    const graphic = scene.add.rectangle(x, y, cfg.w, cfg.h, cfg.color);
+    const graphic = scene.add.rectangle(x, y, cfg.w, cfg.h, cfg.color).setVisible(false);
 
     // Physics body
     const body = scene.matter.add.rectangle(x, y, cfg.w, cfg.h, {

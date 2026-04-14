@@ -1,15 +1,18 @@
 import { Scene } from "phaser";
 import { Rocket } from "../objects/Rocket";
 import { InputManager } from "../systems/InputManager";
+import { ZoneManager } from "../systems/ZoneManager";
 import { GameState } from "../GameState";
 
 export class FlightScene extends Scene {
   private rocket!: Rocket;
   private inputManager!: InputManager;
+  private zoneManager!: ZoneManager;
   private altitude: number = 0;
   private maxAltitude: number = 0;
   private isThrusting: boolean = false;
   private crashed: boolean = false;
+  private gearsCollected: number = 0;
 
   constructor() {
     super("FlightScene");
@@ -18,6 +21,7 @@ export class FlightScene extends Scene {
   preload() {
     this.load.image("rocket", "assets/rocket.png");
     this.load.image("ground", "assets/ground.png");
+    this.load.image("gear", "assets/gear.png");
   }
 
   create() {
@@ -37,8 +41,10 @@ export class FlightScene extends Scene {
     );
 
     // Create rocket at bottom center
+    this.gearsCollected = 0;
     this.rocket = new Rocket(this, 360, 1100);
     this.inputManager = new InputManager(this);
+    this.zoneManager = new ZoneManager(this);
 
     // Camera follows rocket
     const rocketGraphic = this.add
@@ -75,6 +81,13 @@ export class FlightScene extends Scene {
           if (this.maxAltitude > 50) {
             this.crash();
           }
+        }
+
+        if (labels.includes("rocket") && labels.includes("gear")) {
+          const gearBody = pair.bodyA.label === "gear" ? pair.bodyA : pair.bodyB;
+          this.zoneManager.removeGearByBody(gearBody);
+          this.gearsCollected++;
+          this.events.emit("gearCollected", this.gearsCollected);
         }
       }
     });
@@ -130,12 +143,16 @@ export class FlightScene extends Scene {
       this.maxAltitude = this.altitude;
     }
 
+    // Zone manager update (spawning gears/obstacles)
+    this.zoneManager.update(delta, this.altitude, this.rocket.body.position.x);
+
     // Emit HUD update
     this.events.emit("updateHUD", {
       altitude: Math.floor(this.altitude),
       fuel: this.rocket.fuel,
       maxFuel: this.rocket.maxFuel,
       zone: zoneName,
+      gears: this.gearsCollected,
     });
 
     // Update rocket graphic position (for camera)
@@ -190,9 +207,10 @@ export class FlightScene extends Scene {
 
     this.cameras.main.shake(300, 0.02);
     this.time.delayedCall(400, () => {
-      GameState.finishRun(this.maxAltitude, 0);
+      GameState.finishRun(this.maxAltitude, this.gearsCollected);
       this.inputManager.destroy();
       this.rocket.destroy();
+      this.zoneManager.destroy();
       this.scene.start("CrashScene");
     });
   }

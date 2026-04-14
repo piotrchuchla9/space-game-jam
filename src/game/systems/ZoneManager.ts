@@ -3,7 +3,7 @@ import { spawnObstacle, ObstacleType } from '../objects/Obstacle';
 import { spawnGear } from '../objects/Gear';
 
 interface SpawnedEntity {
-    graphic: Phaser.GameObjects.Rectangle;
+    graphic: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
     body: MatterJS.BodyType;
 }
 
