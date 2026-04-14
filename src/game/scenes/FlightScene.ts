@@ -15,6 +15,7 @@ export class FlightScene extends Scene {
   private gearsCollected: number = 0;
   private currentZoom: number = 1.4;
   private currentFollowOffsetY: number = 150;
+  private flameSprites: Phaser.GameObjects.Ellipse[] = [];
 
   constructor() {
     super("FlightScene");
@@ -104,8 +105,23 @@ export class FlightScene extends Scene {
 
     this.maxAltitude = 0;
 
-    // Launch HUD
+    // Launch HUD (stop first to avoid stale listeners on restart)
+    this.scene.stop("HUDScene");
     this.scene.launch("HUDScene");
+
+    // Flame visuals — 3 layered ellipses for animated fire effect
+    const flameColors = [0xff4500, 0xff8c00, 0xffdd00];
+    const flameSizes = [
+      { w: 14, h: 30 },
+      { w: 10, h: 24 },
+      { w: 6, h: 18 },
+    ];
+    this.flameSprites = flameColors.map((color, i) => {
+      const flame = this.add.ellipse(0, 0, flameSizes[i].w, flameSizes[i].h, color);
+      flame.setAlpha(0.9 - i * 0.1);
+      flame.setVisible(false);
+      return flame;
+    });
   }
 
   update(_time: number, delta: number) {
@@ -189,6 +205,27 @@ export class FlightScene extends Scene {
       rocketGraphic.setRotation(this.rocket.body.angle);
     }
 
+    // Update flame sprites — follow rocket exhaust and animate
+    const exhaustAngle = this.rocket.body.angle + Math.PI / 2;
+    const exhaustX = this.rocket.body.position.x + Math.cos(exhaustAngle) * 40;
+    const exhaustY = this.rocket.body.position.y + Math.sin(exhaustAngle) * 40;
+    for (let i = 0; i < this.flameSprites.length; i++) {
+      const flame = this.flameSprites[i];
+      flame.setVisible(this.isThrusting);
+      if (this.isThrusting) {
+        // Offset each layer slightly further from exhaust
+        const offset = i * 4;
+        flame.setPosition(
+          exhaustX + Math.cos(exhaustAngle) * offset,
+          exhaustY + Math.sin(exhaustAngle) * offset,
+        );
+        flame.setRotation(this.rocket.body.angle);
+        // Flicker animation
+        const flicker = 0.7 + Math.random() * 0.3;
+        flame.setScale(flicker, 0.8 + Math.random() * 0.4);
+      }
+    }
+
     let bgColor: number;
     if (this.altitude < 8000) {
       bgColor = this.lerpColor(0x4a90d9, 0x1a3a6e, this.altitude / 8000);
@@ -230,9 +267,12 @@ export class FlightScene extends Scene {
     this.cameras.main.shake(300, 0.02);
     this.time.delayedCall(400, () => {
       GameState.finishRun(this.maxAltitude, this.gearsCollected);
+      this.flameSprites.forEach((f) => f.destroy());
+      this.flameSprites = [];
       this.inputManager.destroy();
       this.rocket.destroy();
       this.zoneManager.destroy();
+      this.scene.stop("HUDScene");
       this.scene.start("CrashScene");
     });
   }
