@@ -1,14 +1,14 @@
 import { Scene } from 'phaser';
 
 export interface GearObject {
-    graphic: Phaser.GameObjects.Arc;
+    graphic: Phaser.GameObjects.Image;
     bodyId: number;
     body: any;
     collected: boolean;
 }
 
 export function spawnGear(scene: Scene, x: number, y: number): GearObject {
-    const graphic = scene.add.circle(x, y, 10, 0xffcc00).setStrokeStyle(2, 0xff9900);
+    const graphic = scene.add.image(x, y, 'gear').setDisplaySize(28, 28);
 
     const body = scene.matter.add.rectangle(x, y, 20, 20, {
         label: 'gear',

@@ -5,7 +5,6 @@ export interface AchievementDef {
 }
 
 export const ACHIEVEMENTS: AchievementDef[] = [
-  { id: 'enter-turbulence', name: 'Turbulence Zone', altitudeThreshold: 5000 },
   { id: 'alt-5000', name: 'Sky High', altitudeThreshold: 5000 },
   { id: 'enter-space', name: 'Space Explorer', altitudeThreshold: 15000 },
   { id: 'alt-10000', name: 'Cloud Breaker', altitudeThreshold: 10000 },

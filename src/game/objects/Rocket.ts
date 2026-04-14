@@ -127,6 +127,15 @@ export class Rocket {
         });
     }
 
+    applyBirdHit(birdVelocityX: number) {
+        // Tilt rocket in the direction the bird was flying
+        const torque = Math.sign(birdVelocityX) * 0.02;
+        (this.scene.matter.body as any).setAngularVelocity(
+            this.body,
+            this.body.angularVelocity + torque,
+        );
+    }
+
     takeDamage(): boolean {
         if (this.shieldHP > 0) {
             this.shieldHP--;
