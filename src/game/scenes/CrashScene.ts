@@ -54,28 +54,35 @@ export class CrashScene extends Scene {
         const statsPanel = panel(this, cx, 600, 560, 360);
         content.add(statsPanel);
 
-        const altText = label(this, cx - 220, 470, 'MAX ALTITUDE: 0', 22, { color: HEX.paper, bold: true, strokeThickness: 3 }).setOrigin(0, 0.5);
+        const altText = label(this, cx - 220, 460, 'MAX ALTITUDE: 0', 22, { color: HEX.paper, bold: true, strokeThickness: 3 }).setOrigin(0, 0.5);
         content.add(altText);
         this.tweens.addCounter({
             from: 0, to: run.altitude, duration: 800,
             onUpdate: tw => altText.setText(`MAX ALTITUDE: ${Math.round(tw.getValue() ?? 0)}`),
         });
 
-        const gearsText = label(this, cx - 220, 530, 'GEARS COLLECTED: 0', 22, { color: HEX.accentWarm, bold: true, strokeThickness: 3 }).setOrigin(0, 0.5);
+        const gearsText = label(this, cx - 220, 510, 'GEARS COLLECTED: 0', 22, { color: HEX.accentWarm, bold: true, strokeThickness: 3 }).setOrigin(0, 0.5);
         content.add(gearsText);
         this.tweens.addCounter({
             from: 0, to: run.gears, duration: 800,
             onUpdate: tw => gearsText.setText(`GEARS COLLECTED: ${Math.round(tw.getValue() ?? 0)}`),
         });
 
+        const timeText = label(this, cx - 220, 560, 'TIME: 0.00 s', 22, { color: HEX.accentCyan, bold: true, strokeThickness: 3 }).setOrigin(0, 0.5);
+        content.add(timeText);
+        this.tweens.addCounter({
+            from: 0, to: run.time, duration: 800,
+            onUpdate: tw => timeText.setText(`TIME: ${(tw.getValue() ?? 0).toFixed(2)} s`),
+        });
+
         const sep = this.add.graphics();
         sep.lineStyle(2, COLORS.ink, 1);
         for (let x = cx - 220; x < cx + 220; x += 14) {
-            sep.lineBetween(x, 575, x + 8, 575);
+            sep.lineBetween(x, 600, x + 8, 600);
         }
         content.add(sep);
 
-        const scoreText = label(this, cx, 630, 'SCORE: 0', 40, { color: HEX.accentCyan, bold: true, strokeThickness: 5 });
+        const scoreText = label(this, cx, 650, 'SCORE: 0', 40, { color: HEX.accentCyan, bold: true, strokeThickness: 5 });
         content.add(scoreText);
         this.tweens.addCounter({
             from: 0, to: run.score, duration: 1200,

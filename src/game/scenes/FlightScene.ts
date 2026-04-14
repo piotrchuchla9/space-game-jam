@@ -13,6 +13,7 @@ export class FlightScene extends Scene {
   private isThrusting: boolean = false;
   private crashed: boolean = false;
   private gearsCollected: number = 0;
+  private launchTime: number = 0;
   private currentZoom: number = 1.4;
   private currentFollowOffsetY: number = 150;
   private flameSprites: Phaser.GameObjects.Ellipse[] = [];
@@ -41,6 +42,7 @@ export class FlightScene extends Scene {
 
   create() {
     this.crashed = false;
+    this.launchTime = this.time.now;
 
     // World bounds — wide and tall
     this.matter.world.setBounds(
@@ -227,6 +229,7 @@ export class FlightScene extends Scene {
       zone: zoneName,
       gears: this.gearsCollected,
       speed: Math.round(speed * 10),
+      time: (this.time.now - this.launchTime) / 1000,
     });
 
     // Update rocket graphic position (for camera)
@@ -330,7 +333,8 @@ export class FlightScene extends Scene {
 
     this.cameras.main.shake(300, 0.02);
     this.time.delayedCall(400, () => {
-      GameState.finishRun(this.maxAltitude, this.gearsCollected);
+      const elapsedSeconds = (this.time.now - this.launchTime) / 1000;
+      GameState.finishRun(this.maxAltitude, this.gearsCollected, elapsedSeconds);
       if (this.thrusterSound.isPlaying) this.thrusterSound.stop();
       if (this.fuelAlertSound.isPlaying) this.fuelAlertSound.stop();
       this.flameSprites.forEach((f) => f.destroy());

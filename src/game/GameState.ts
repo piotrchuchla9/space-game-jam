@@ -15,6 +15,7 @@ export interface LastRun {
     altitude: number;
     gears: number;
     score: number;
+    time: number;
 }
 
 interface SaveData {
@@ -60,6 +61,7 @@ class GameStateClass {
         altitude: 0,
         gears: 0,
         score: 0,
+        time: 0,
     };
 
     constructor() {
@@ -106,9 +108,9 @@ class GameStateClass {
         return total;
     }
 
-    finishRun(altitude: number, gears: number) {
+    finishRun(altitude: number, gears: number, time: number = 0) {
         const score = Math.floor(altitude) + gears * 10;
-        this.lastRun = { altitude: Math.floor(altitude), gears, score };
+        this.lastRun = { altitude: Math.floor(altitude), gears, score, time };
         this.currency += gears;
         if (score > this.highscore) {
             this.highscore = score;
