@@ -1,18 +1,14 @@
 import { Scene } from 'phaser';
 import { Rocket } from '../objects/Rocket';
 import { InputManager } from '../systems/InputManager';
-import { ZoneManager } from '../systems/ZoneManager';
 import { GameState } from '../GameState';
 
 export class FlightScene extends Scene {
     private rocket!: Rocket;
     private inputManager!: InputManager;
-    private zoneManager!: ZoneManager;
     private altitude: number = 0;
-    private gearsCollected: number = 0;
     private maxAltitude: number = 0;
     private isThrusting: boolean = false;
-    private engineEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
     private crashed: boolean = false;
 
     constructor() {
@@ -23,17 +19,11 @@ export class FlightScene extends Scene {
         this.crashed = false;
 
         // World bounds — wide and tall
-        this.matter.world.setBounds(-500, -50000, 1720, 51280);
+        this.matter.world.setBounds(-3000, -50000, 6720, 51280, 32, false, false, false, false);
 
         // Create rocket at bottom center
         this.rocket = new Rocket(this, 360, 1100);
         this.inputManager = new InputManager(this);
-        this.zoneManager = new ZoneManager(this);
-
-        // Listen for turbulence
-        this.events.on('turbulence', (force: { x: number; y: number }) => {
-            this.matter.body.applyForce(this.rocket.body, this.rocket.body.position, force);
-        });
 
         // Camera follows rocket
         const rocketGraphic = this.add.rectangle(
@@ -46,12 +36,6 @@ export class FlightScene extends Scene {
 
         // Store reference for camera tracking
         this.data.set('rocketGraphic', rocketGraphic);
-
-        // Engine particles — skip for now, Phaser 4 API differs
-        this.engineEmitter = null;
-
-        // Launch HUD as parallel scene
-        this.scene.launch('HUDScene');
 
         // Ground
         this.matter.add.rectangle(360, 1250, 720, 100, { isStatic: true, label: 'ground' });
@@ -66,11 +50,6 @@ export class FlightScene extends Scene {
                     if (destroyed) this.crash();
                 }
 
-                if (labels.includes('rocket') && labels.includes('gear')) {
-                    const gearBody = pair.bodyA.label === 'gear' ? pair.bodyA : pair.bodyB;
-                    this.collectGear(gearBody);
-                }
-
                 if (labels.includes('rocket') && labels.includes('ground')) {
                     if (this.maxAltitude > 50) {
                         this.crash();
@@ -79,7 +58,6 @@ export class FlightScene extends Scene {
             }
         });
 
-        this.gearsCollected = 0;
         this.maxAltitude = 0;
     }
 
@@ -115,20 +93,11 @@ export class FlightScene extends Scene {
             this.maxAltitude = this.altitude;
         }
 
-        // Zone manager
-        this.zoneManager.update(delta, this.altitude, this.rocket.body.position.x);
-
         // Update rocket graphic position (for camera)
         const rocketGraphic = this.data.get('rocketGraphic') as Phaser.GameObjects.Rectangle;
         if (rocketGraphic) {
             rocketGraphic.setPosition(this.rocket.body.position.x, this.rocket.body.position.y);
             rocketGraphic.setRotation(this.rocket.body.angle);
-        }
-
-        // Update engine particles
-        if (this.engineEmitter) {
-            this.engineEmitter.setPosition(this.rocket.body.position.x, this.rocket.body.position.y + 40);
-            this.engineEmitter.emitting = this.isThrusting;
         }
 
         // Background color transition
@@ -141,15 +110,6 @@ export class FlightScene extends Scene {
             bgColor = 0x0a0a1a;
         }
         this.cameras.main.setBackgroundColor(bgColor);
-
-        // Emit data for HUD
-        this.events.emit('updateHUD', {
-            altitude: Math.floor(this.altitude),
-            fuel: this.rocket.fuel,
-            maxFuel: this.rocket.maxFuel,
-            gears: this.gearsCollected,
-            zone: this.getZoneName(),
-        });
 
         // Check if rocket fell below start and has been flying
         if (this.rocket.body.position.y > 1300 && this.maxAltitude > 50) {
@@ -167,28 +127,15 @@ export class FlightScene extends Scene {
         return (r << 16) | (g << 8) | b;
     }
 
-    private getZoneName(): string {
-        if (this.altitude < 1000) return 'ATMOSPHERE';
-        if (this.altitude < 3000) return 'TURBULENCE';
-        return 'SPACE';
-    }
-
-    private collectGear(gearBody: MatterJS.BodyType) {
-        this.gearsCollected++;
-        this.zoneManager.removeGearByBody(gearBody);
-    }
-
     private crash() {
         if (this.crashed) return;
         this.crashed = true;
 
         this.cameras.main.shake(300, 0.02);
         this.time.delayedCall(400, () => {
-            GameState.finishRun(this.maxAltitude, this.gearsCollected);
-            this.zoneManager.destroy();
+            GameState.finishRun(this.maxAltitude, 0);
             this.inputManager.destroy();
             this.rocket.destroy();
-            this.scene.stop('HUDScene');
             this.scene.start('CrashScene');
         });
     }
