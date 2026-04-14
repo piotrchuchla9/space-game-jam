@@ -11,7 +11,10 @@
       "Bash(npm install:*)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(./node_modules/.bin/vite --config vite/config.dev.mjs)",
-      "Bash(curl -s http://localhost:8080)"
+      "Bash(curl -s http://localhost:8080)",
+      "WebSearch",
+      "WebFetch(domain:docs.wavedash.com)",
+      "WebFetch(domain:www.npmjs.com)"
     ]
   }
 }
