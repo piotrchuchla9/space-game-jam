@@ -31,6 +31,9 @@ export class FlightScene extends Scene {
     this.load.audio("explosionCrunch", "assets/explosionCrunch.ogg");
     this.load.audio("gearPickup", "assets/gear.mp3");
     this.load.audio("birdHit", "assets/bird.mp3");
+    this.load.image("canister", "assets/canister.png");
+
+    this.load.image("station_003", "assets/station_005.png");
   }
 
   create() {
@@ -66,6 +69,9 @@ export class FlightScene extends Scene {
     // Store reference for camera tracking
     this.data.set("rocketGraphic", rocketGraphic);
 
+    // Launch pad under rocket
+    this.buildLaunchPad();
+
     // Underground fill
     this.add.rectangle(360, 1400, 6720, 400, 0x3d3d2e).setDepth(-6);
 
@@ -88,7 +94,8 @@ export class FlightScene extends Scene {
         }
 
         if (labels.includes("rocket") && labels.includes("bird")) {
-          const birdBody = pair.bodyA.label === "bird" ? pair.bodyA : pair.bodyB;
+          const birdBody =
+            pair.bodyA.label === "bird" ? pair.bodyA : pair.bodyB;
           this.rocket.applyBirdHit(birdBody.velocity.x);
           this.sound.play("birdHit", { volume: GameState.getSfxVolume() });
           this.zoneManager.removeObstacleByBody(birdBody);
@@ -101,11 +108,19 @@ export class FlightScene extends Scene {
         }
 
         if (labels.includes("rocket") && labels.includes("gear")) {
-          const gearBody = pair.bodyA.label === "gear" ? pair.bodyA : pair.bodyB;
+          const gearBody =
+            pair.bodyA.label === "gear" ? pair.bodyA : pair.bodyB;
           this.zoneManager.removeGearByBody(gearBody);
           this.sound.play("gearPickup", { volume: GameState.getSfxVolume() });
           this.gearsCollected++;
           this.events.emit("gearCollected", this.gearsCollected);
+        }
+
+        if (labels.includes("rocket") && labels.includes("canister")) {
+          const canisterBody =
+            pair.bodyA.label === "canister" ? pair.bodyA : pair.bodyB;
+          this.zoneManager.removeCanisterByBody(canisterBody);
+          this.rocket.addFuel(this.rocket.maxFuel * 0.25);
         }
       }
     });
@@ -186,7 +201,8 @@ export class FlightScene extends Scene {
     const targetOffsetY = this.altitude > 0 ? 500 : 150;
     const lerpFactor = Math.min(1, delta * 0.002);
     this.currentZoom += (targetZoom - this.currentZoom) * lerpFactor;
-    this.currentFollowOffsetY += (targetOffsetY - this.currentFollowOffsetY) * lerpFactor;
+    this.currentFollowOffsetY +=
+      (targetOffsetY - this.currentFollowOffsetY) * lerpFactor;
     this.cameras.main.setZoom(this.currentZoom);
     this.cameras.main.setFollowOffset(0, this.currentFollowOffsetY);
 
@@ -262,6 +278,19 @@ export class FlightScene extends Scene {
     if (this.rocket.body.position.y > 1300 && this.maxAltitude > 50) {
       this.crash();
     }
+  }
+
+  private buildLaunchPad() {
+    const rx = 360; // rocket x
+    const groundY = 1215;
+    const padW = 160; // display width for all pieces
+    const depth = -1;
+
+    this.add
+      .image(rx, groundY, "station_003")
+      .setDisplaySize(padW, 28)
+      .setOrigin(0.5, 1)
+      .setDepth(depth);
   }
 
   private lerpColor(from: number, to: number, t: number): number {
