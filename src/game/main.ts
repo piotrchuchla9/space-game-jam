@@ -1,4 +1,5 @@
 import { AUTO, Game, Scale, Types } from "phaser";
+import { Preloader } from "./scenes/Preloader";
 import { MenuScene } from "./scenes/MenuScene";
 import { BuildScene } from "./scenes/BuildScene";
 import { FlightScene } from "./scenes/FlightScene";
@@ -12,7 +13,7 @@ const config: Types.Core.GameConfig = {
   width: 720,
   height: 1280,
   parent: "game-container",
-  backgroundColor: "#1a1a2e",
+  backgroundColor: "#0a0e27",
   scale: {
     mode: Scale.FIT,
     autoCenter: Scale.CENTER_BOTH,
@@ -27,7 +28,7 @@ const config: Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [MenuScene, BuildScene, FlightScene, HUDScene, CrashScene, AchievementsScene],
+  scene: [Preloader, MenuScene, BuildScene, FlightScene, HUDScene, CrashScene, AchievementsScene],
 };
 
 const StartGame = (parent: string) => {

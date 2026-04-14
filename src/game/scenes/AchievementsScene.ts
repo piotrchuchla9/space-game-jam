@@ -1,14 +1,15 @@
 import { Scene } from 'phaser';
 import { GameState } from '../GameState';
 import { ACHIEVEMENTS } from '../systems/AchievementManager';
+import { StarfieldBackground } from '../ui/StarfieldBackground';
+import { CartoonButton } from '../ui/CartoonButton';
+import { warpIn, warpOut } from '../ui/SceneTransition';
+import { title, label, panel } from '../ui/typography';
+import { COLORS, HEX } from '../ui/colors';
 
 export class AchievementsScene extends Scene {
     constructor() {
         super('AchievementsScene');
-    }
-
-    preload() {
-        this.load.audio('click', 'assets/click.mp3');
     }
 
     private playClick() {
@@ -18,64 +19,100 @@ export class AchievementsScene extends Scene {
     create() {
         const cx = 360;
 
-        this.add.text(cx, 80, 'ACHIEVEMENTS', {
-            fontSize: '42px',
-            color: '#ffcc00',
-            fontFamily: 'monospace',
-            fontStyle: 'bold',
-        }).setOrigin(0.5);
+        const starfield = new StarfieldBackground(this, { density: 0.8 });
+        starfield.addAccent('constellations');
 
-        const startY = 200;
-        const spacing = 100;
+        const t = title(this, cx, 90, 'ACHIEVEMENTS', 56, { color: HEX.accentWarm, strokeThickness: 7 });
+        t.setScale(0);
+        this.tweens.add({ targets: t, scale: 1, duration: 500, ease: 'Back.easeOut' });
 
-        for (let i = 0; i < ACHIEVEMENTS.length; i++) {
-            const ach = ACHIEVEMENTS[i];
+        const unlockedCount = GameState.unlockedAchievements.length;
+        panel(this, cx, 160, 280, 48);
+        const counter = label(this, cx, 160, `0 / ${ACHIEVEMENTS.length} UNLOCKED`, 20, {
+            color: HEX.accentWarm, bold: true, strokeThickness: 3,
+        });
+        this.tweens.addCounter({
+            from: 0,
+            to: unlockedCount,
+            duration: 600,
+            onUpdate: tween => counter.setText(`${Math.round(tween.getValue() ?? 0)} / ${ACHIEVEMENTS.length} UNLOCKED`),
+        });
+
+        const startY = 240;
+        const spacing = 110;
+
+        ACHIEVEMENTS.forEach((ach, i) => {
             const y = startY + i * spacing;
             const unlocked = GameState.unlockedAchievements.includes(ach.id);
 
-            // Icon
-            this.add.text(120, y, unlocked ? '★' : '☆', {
-                fontSize: '36px',
-                color: unlocked ? '#ffcc00' : '#444444',
-                fontFamily: 'monospace',
-            }).setOrigin(0.5);
+            const card = this.add.container(800, y);
+            const bgColor = unlocked ? COLORS.paper : COLORS.bgMid;
+            const bgAlpha = unlocked ? 0.12 : 0.4;
 
-            // Name
-            this.add.text(160, y - 12, ach.name, {
+            const g = this.add.graphics();
+            g.fillStyle(bgColor, bgAlpha);
+            g.fillRoundedRect(-300, -45, 600, 90, 16);
+            g.lineStyle(4, COLORS.ink, 1);
+            g.strokeRoundedRect(-300, -45, 600, 90, 16);
+            card.add(g);
+
+            if (unlocked) {
+                const star = this.add.text(-250, 0, '★', {
+                    fontFamily: 'KenneyFuture, sans-serif',
+                    fontSize: '48px',
+                    color: HEX.accentWarm,
+                    stroke: HEX.ink,
+                    strokeThickness: 4,
+                }).setOrigin(0.5);
+                this.tweens.add({ targets: star, rotation: Math.PI * 2, duration: 20000, repeat: -1 });
+                card.add(star);
+            } else {
+                const lock = this.add.text(-250, 0, '■', {
+                    fontFamily: 'KenneyFuture, sans-serif',
+                    fontSize: '40px',
+                    color: HEX.accentLilac,
+                    stroke: HEX.ink,
+                    strokeThickness: 3,
+                }).setOrigin(0.5);
+                card.add(lock);
+            }
+
+            const nameText = this.add.text(-200, -14, ach.name, {
+                fontFamily: 'KenneyFuture, sans-serif',
                 fontSize: '22px',
-                color: unlocked ? '#ffffff' : '#555555',
-                fontFamily: 'monospace',
-                fontStyle: unlocked ? 'bold' : 'normal',
+                color: unlocked ? HEX.paper : HEX.accentLilac,
+                stroke: HEX.ink,
+                strokeThickness: 3,
             }).setOrigin(0, 0.5);
+            card.add(nameText);
 
-            // Threshold
             const desc = ach.gearsThreshold !== undefined
                 ? `Collect ${ach.gearsThreshold.toLocaleString()} gears in one flight`
                 : `Reach ${ach.altitudeThreshold!.toLocaleString()} altitude`;
-            this.add.text(160, y + 16, desc, {
+            const descText = this.add.text(-200, 18, desc, {
+                fontFamily: '"Trebuchet MS", sans-serif',
                 fontSize: '14px',
-                color: unlocked ? '#88aaff' : '#333333',
-                fontFamily: 'monospace',
+                color: unlocked ? HEX.accentLilac : '#888',
             }).setOrigin(0, 0.5);
+            card.add(descText);
 
-            // Separator line
-            if (i < ACHIEVEMENTS.length - 1) {
-                this.add.rectangle(cx, y + spacing / 2, 500, 1, unlocked ? 0x333333 : 0x222222);
-            }
-        }
-
-        // Back button
-        const backBtn = this.add.text(cx, 1100, '[ BACK ]', {
-            fontSize: '32px',
-            color: '#888888',
-            fontFamily: 'monospace',
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-
-        backBtn.on('pointerover', () => backBtn.setColor('#ffffff'));
-        backBtn.on('pointerout', () => backBtn.setColor('#888888'));
-        backBtn.on('pointerdown', () => {
-            this.playClick();
-            this.scene.start('MenuScene');
+            this.tweens.add({
+                targets: card,
+                x: cx,
+                delay: i * 80,
+                duration: 400,
+                ease: 'Back.easeOut',
+            });
         });
+
+        new CartoonButton(this, cx, 1180, '< BACK', {
+            variant: 'ghost', width: 220, height: 64, fontSize: 24,
+            onClick: () => {
+                this.playClick();
+                warpOut(this, () => this.scene.start('MenuScene'));
+            },
+        });
+
+        warpIn(this);
     }
 }
