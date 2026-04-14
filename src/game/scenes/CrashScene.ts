@@ -7,6 +7,14 @@ export class CrashScene extends Scene {
         super('CrashScene');
     }
 
+    preload() {
+        this.load.audio('click', 'assets/click.mp3');
+    }
+
+    private playClick() {
+        this.sound.play('click', { volume: GameState.getSfxVolume() });
+    }
+
     create() {
         const cx = 360;
         const run = GameState.lastRun;
@@ -50,7 +58,10 @@ export class CrashScene extends Scene {
 
         rebuildBtn.on('pointerover', () => rebuildBtn.setColor('#ffffff'));
         rebuildBtn.on('pointerout', () => rebuildBtn.setColor('#4a9eff'));
-        rebuildBtn.on('pointerdown', () => this.scene.start('BuildScene'));
+        rebuildBtn.on('pointerdown', () => {
+            this.playClick();
+            this.scene.start('BuildScene');
+        });
 
         const menuBtn = this.add.text(cx, 950, '[ MENU ]', {
             fontSize: '32px', color: '#888888', fontFamily: 'monospace'
@@ -58,7 +69,10 @@ export class CrashScene extends Scene {
 
         menuBtn.on('pointerover', () => menuBtn.setColor('#ffffff'));
         menuBtn.on('pointerout', () => menuBtn.setColor('#888888'));
-        menuBtn.on('pointerdown', () => this.scene.start('MenuScene'));
+        menuBtn.on('pointerdown', () => {
+            this.playClick();
+            this.scene.start('MenuScene');
+        });
 
         // Achievement toasts for anything unlocked this run
         if (GameState.pendingAchievementNotifications.length > 0) {

@@ -10,6 +10,11 @@ export class MenuScene extends Scene {
 
     preload() {
         this.load.audio('soundtrack', 'assets/soundtrack.mp3');
+        this.load.audio('click', 'assets/click.mp3');
+    }
+
+    private playClick() {
+        this.sound.play('click', { volume: GameState.getSfxVolume() });
     }
 
     create() {
@@ -46,6 +51,7 @@ export class MenuScene extends Scene {
         playBtn.on('pointerover', () => playBtn.setColor('#ffffff'));
         playBtn.on('pointerout', () => playBtn.setColor('#4a9eff'));
         playBtn.on('pointerdown', () => {
+            this.playClick();
             this.scene.start('BuildScene');
         });
 
@@ -57,7 +63,10 @@ export class MenuScene extends Scene {
 
         achBtn.on('pointerover', () => achBtn.setColor('#ffffff'));
         achBtn.on('pointerout', () => achBtn.setColor('#ffcc00'));
-        achBtn.on('pointerdown', () => this.scene.start('AchievementsScene'));
+        achBtn.on('pointerdown', () => {
+            this.playClick();
+            this.scene.start('AchievementsScene');
+        });
 
         // --- Sound controls ---
         this.createVolumeControl(cx, 880, 'MUSIC', GameState.musicVolume, GameState.musicMuted,
@@ -128,6 +137,7 @@ export class MenuScene extends Scene {
             .setInteractive({ useHandCursor: true });
 
         hitZone.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            this.playClick();
             const localX = pointer.x - trackX;
             volume = PhaserMath.Clamp(localX / trackW, 0, 1);
             handle.setX(trackX + trackW * volume);
@@ -153,6 +163,7 @@ export class MenuScene extends Scene {
         }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
 
         muteBtn.on('pointerdown', () => {
+            this.playClick();
             muted = !muted;
             muteBtn.setText(muted ? 'OFF' : 'ON');
             muteBtn.setColor(muted ? '#ff4444' : '#44ff44');

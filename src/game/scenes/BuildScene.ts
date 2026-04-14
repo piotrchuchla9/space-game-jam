@@ -34,6 +34,14 @@ export class BuildScene extends Scene {
 
     preload() {
         this.load.audio('soundtrack', 'assets/soundtrack.mp3');
+        this.load.audio('click', 'assets/click.mp3');
+        this.load.audio('buy', 'assets/buy.mp3');
+        this.load.audio('error', 'assets/error.mp3');
+        this.load.audio('build', 'assets/build.mp3');
+    }
+
+    private playClick() {
+        this.sound.play('click', { volume: GameState.getSfxVolume() });
     }
 
     create() {
@@ -71,7 +79,10 @@ export class BuildScene extends Scene {
 
             this.slotLabels.set(slot.key, label);
 
-            rect.on('pointerdown', () => this.openPartPanel(slot));
+            rect.on('pointerdown', () => {
+                this.playClick();
+                this.openPartPanel(slot);
+            });
             rect.on('pointerover', () => rect.setStrokeStyle(3, 0xffffff));
             rect.on('pointerout', () => rect.setStrokeStyle(2, 0x4a9eff));
         }
@@ -83,13 +94,19 @@ export class BuildScene extends Scene {
 
         this.launchBtn.on('pointerover', () => this.launchBtn.setColor('#ff8888'));
         this.launchBtn.on('pointerout', () => this.launchBtn.setColor('#ff4444'));
-        this.launchBtn.on('pointerdown', () => this.launch());
+        this.launchBtn.on('pointerdown', () => {
+            this.playClick();
+            this.launch();
+        });
 
         // Back button
         const backBtn = this.add.text(60, 1230, '< MENU', {
             fontSize: '24px', color: '#888888', fontFamily: 'monospace'
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-        backBtn.on('pointerdown', () => this.scene.start('MenuScene'));
+        backBtn.on('pointerdown', () => {
+            this.playClick();
+            this.scene.start('MenuScene');
+        });
 
         this.refreshUI();
     }
@@ -143,6 +160,7 @@ export class BuildScene extends Scene {
                 fontSize: '20px', color: '#888888', fontFamily: 'monospace'
             }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
             emptyBtn.on('pointerdown', () => {
+                this.playClick();
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (GameState.rocketConfig as any)[slot.key] = null;
                 this.closePartPanel();
@@ -180,6 +198,7 @@ export class BuildScene extends Scene {
                 nameText.setInteractive({ useHandCursor: true });
                 nameText.on('pointerdown', () => {
                     GameState.rocketConfig[slot.key] = part.id;
+                    this.sound.play('build', { volume: GameState.getSfxVolume() });
                     this.closePartPanel();
                     this.refreshUI();
                 });
@@ -193,8 +212,11 @@ export class BuildScene extends Scene {
                 }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
                 unlockBtn.on('pointerdown', () => {
                     if (GameState.unlockPart(part.id)) {
+                        this.sound.play('buy', { volume: GameState.getSfxVolume() });
                         this.closePartPanel();
                         this.openPartPanel(slot);
+                    } else {
+                        this.sound.play('error', { volume: GameState.getSfxVolume() });
                     }
                 });
                 container.add(unlockBtn);

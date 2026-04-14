@@ -7,6 +7,14 @@ export class AchievementsScene extends Scene {
         super('AchievementsScene');
     }
 
+    preload() {
+        this.load.audio('click', 'assets/click.mp3');
+    }
+
+    private playClick() {
+        this.sound.play('click', { volume: GameState.getSfxVolume() });
+    }
+
     create() {
         const cx = 360;
 
@@ -65,6 +73,9 @@ export class AchievementsScene extends Scene {
 
         backBtn.on('pointerover', () => backBtn.setColor('#ffffff'));
         backBtn.on('pointerout', () => backBtn.setColor('#888888'));
-        backBtn.on('pointerdown', () => this.scene.start('MenuScene'));
+        backBtn.on('pointerdown', () => {
+            this.playClick();
+            this.scene.start('MenuScene');
+        });
     }
 }
