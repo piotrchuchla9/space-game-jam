@@ -111,4 +111,4 @@ export function getPartsForSlot(slot: SlotType): PartDef[] {
 }
 
 export const BUILD_BUDGET = 100;
-export const BASE_FUEL = 100;
+export const BASE_FUEL = 20;

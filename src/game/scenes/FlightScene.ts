@@ -15,6 +15,11 @@ export class FlightScene extends Scene {
         super('FlightScene');
     }
 
+    preload() {
+        this.load.image('rocket', 'assets/rocket.png');
+        this.load.image('ground', 'assets/ground.png');
+    }
+
     create() {
         this.crashed = false;
 
@@ -26,18 +31,24 @@ export class FlightScene extends Scene {
         this.inputManager = new InputManager(this);
 
         // Camera follows rocket
-        const rocketGraphic = this.add.rectangle(
+        const rocketGraphic = this.add.image(
             this.rocket.body.position.x,
             this.rocket.body.position.y,
-            30, 80, 0x4a9eff
-        );
+            'rocket'
+        ).setDisplaySize(30, 80);
         this.cameras.main.startFollow(rocketGraphic, false, 0.1, 0.1);
-        this.cameras.main.setFollowOffset(0, 200);
+        this.cameras.main.setFollowOffset(0, 500);
 
         // Store reference for camera tracking
         this.data.set('rocketGraphic', rocketGraphic);
 
-        // Ground
+        // Underground fill
+        this.add.rectangle(360, 1400, 6720, 400, 0x3d3d2e).setDepth(-6);
+
+        // Ground visual strip
+        this.add.tileSprite(360, 1215, 6720, 30, 'ground').setDepth(-5);
+
+        // Ground physics
         this.matter.add.rectangle(360, 1250, 720, 100, { isStatic: true, label: 'ground' });
 
         // Collision handling
@@ -55,10 +66,14 @@ export class FlightScene extends Scene {
                         this.crash();
                     }
                 }
+
             }
         });
 
         this.maxAltitude = 0;
+
+        // Launch HUD
+        this.scene.launch('HUDScene');
     }
 
     update(_time: number, delta: number) {
@@ -84,7 +99,13 @@ export class FlightScene extends Scene {
         // Drag based on zone
         const alt = this.rocket.getAltitude();
         let dragZone = 1.0;
-        if (alt > 3000) dragZone = 0.1; // space
+        let zoneName = 'ATMOSPHERE';
+        if (alt > 15000) {
+            dragZone = 0.1;
+            zoneName = 'SPACE';
+        } else if (alt > 5000) {
+            zoneName = 'TURBULENCE';
+        }
         this.rocket.applyDrag(dragZone);
 
         // Update altitude
@@ -93,21 +114,29 @@ export class FlightScene extends Scene {
             this.maxAltitude = this.altitude;
         }
 
+        // Emit HUD update
+        this.events.emit('updateHUD', {
+            altitude: Math.floor(this.altitude),
+            fuel: this.rocket.fuel,
+            maxFuel: this.rocket.maxFuel,
+            zone: zoneName,
+        });
+
         // Update rocket graphic position (for camera)
-        const rocketGraphic = this.data.get('rocketGraphic') as Phaser.GameObjects.Rectangle;
+        const rocketGraphic = this.data.get('rocketGraphic') as Phaser.GameObjects.Image;
         if (rocketGraphic) {
             rocketGraphic.setPosition(this.rocket.body.position.x, this.rocket.body.position.y);
             rocketGraphic.setRotation(this.rocket.body.angle);
         }
 
-        // Background color transition
+        // Background color transition — uniform blue palette
         let bgColor: number;
-        if (this.altitude < 1000) {
-            bgColor = this.lerpColor(0x87CEEB, 0x2a1a4e, this.altitude / 1000);
-        } else if (this.altitude < 3000) {
-            bgColor = this.lerpColor(0x2a1a4e, 0x0a0a1a, (this.altitude - 1000) / 2000);
+        if (this.altitude < 8000) {
+            bgColor = this.lerpColor(0x4a90d9, 0x1a3a6e, this.altitude / 8000);
+        } else if (this.altitude < 20000) {
+            bgColor = this.lerpColor(0x1a3a6e, 0x0a1a3a, (this.altitude - 8000) / 12000);
         } else {
-            bgColor = 0x0a0a1a;
+            bgColor = 0x0a1a3a;
         }
         this.cameras.main.setBackgroundColor(bgColor);
 
@@ -136,6 +165,7 @@ export class FlightScene extends Scene {
             GameState.finishRun(this.maxAltitude, 0);
             this.inputManager.destroy();
             this.rocket.destroy();
+            this.scene.stop('HUDScene');
             this.scene.start('CrashScene');
         });
     }

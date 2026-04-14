@@ -70,7 +70,7 @@ export class Rocket {
         const parts = this.scene.matter.bodies.rectangle(x + asymmetry, y, 30, 80, {
             label: 'rocket',
             frictionAir: this.angularDamping,
-            density: totalWeight * 0.001,
+            density: totalWeight * 0.003,
         });
 
         this.body = parts;
