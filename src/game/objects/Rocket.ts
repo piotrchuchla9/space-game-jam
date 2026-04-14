@@ -87,8 +87,8 @@ export class Rocket {
         if (this.fuel <= 0) return;
 
         const angle = this.body.angle - Math.PI / 2; // "up" direction of body
-        const forceX = Math.cos(angle) * this.thrust * 0.004;
-        const forceY = Math.sin(angle) * this.thrust * 0.004;
+        const forceX = Math.cos(angle) * this.thrust * 0.002;
+        const forceY = Math.sin(angle) * this.thrust * 0.002;
 
         this.scene.matter.body.applyForce(this.body, this.body.position, {
             x: forceX,
@@ -120,7 +120,7 @@ export class Rocket {
         const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
         if (speed < 0.1) return;
 
-        const dragForce = this.dragMultiplier * zoneMultiplier * 0.0001;
+        const dragForce = this.dragMultiplier * zoneMultiplier * 0.0003;
         this.scene.matter.body.applyForce(this.body, this.body.position, {
             x: -vel.x * dragForce,
             y: -vel.y * dragForce,
