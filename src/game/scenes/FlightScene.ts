@@ -16,6 +16,7 @@ export class FlightScene extends Scene {
   private currentZoom: number = 1.4;
   private currentFollowOffsetY: number = 150;
   private flameSprites: Phaser.GameObjects.Ellipse[] = [];
+  private thrusterSound!: Phaser.Sound.BaseSound;
 
   constructor() {
     super("FlightScene");
@@ -26,6 +27,11 @@ export class FlightScene extends Scene {
     this.load.image("ground", "assets/ground.png");
     this.load.image("gear", "assets/gear.png");
     this.load.image("bird", "assets/bird.png");
+    this.load.audio("thrusterFire", "assets/thrusterFire.ogg");
+    this.load.audio("explosionCrunch", "assets/explosionCrunch.ogg");
+    this.load.audio("gearPickup", "assets/gear.mp3");
+    this.load.audio("birdHit", "assets/bird.mp3");
+    this.load.audio("fuelPickup", "assets/fuel.mp3");
     this.load.image("canister", "assets/canister.png");
 
     this.load.image("station_003", "assets/station_005.png");
@@ -92,6 +98,7 @@ export class FlightScene extends Scene {
           const birdBody =
             pair.bodyA.label === "bird" ? pair.bodyA : pair.bodyB;
           this.rocket.applyBirdHit(birdBody.velocity.x);
+          this.sound.play("birdHit", { volume: GameState.getSfxVolume() });
           this.zoneManager.removeObstacleByBody(birdBody);
         }
 
@@ -105,6 +112,7 @@ export class FlightScene extends Scene {
           const gearBody =
             pair.bodyA.label === "gear" ? pair.bodyA : pair.bodyB;
           this.zoneManager.removeGearByBody(gearBody);
+          this.sound.play("gearPickup", { volume: GameState.getSfxVolume() });
           this.gearsCollected++;
           this.events.emit("gearCollected", this.gearsCollected);
         }
@@ -114,6 +122,7 @@ export class FlightScene extends Scene {
             pair.bodyA.label === "canister" ? pair.bodyA : pair.bodyB;
           this.zoneManager.removeCanisterByBody(canisterBody);
           this.rocket.addFuel(this.rocket.maxFuel * 0.25);
+          this.sound.play("fuelPickup", { volume: GameState.getSfxVolume() });
         }
       }
     });
@@ -136,6 +145,11 @@ export class FlightScene extends Scene {
       flame.setAlpha(0.9 - i * 0.1);
       flame.setVisible(false);
       return flame;
+    });
+
+    this.thrusterSound = this.sound.add("thrusterFire", {
+      loop: true,
+      volume: GameState.getSfxVolume(),
     });
   }
 
@@ -225,6 +239,12 @@ export class FlightScene extends Scene {
     const exhaustAngle = this.rocket.body.angle + Math.PI / 2;
     const exhaustX = this.rocket.body.position.x + Math.cos(exhaustAngle) * 40;
     const exhaustY = this.rocket.body.position.y + Math.sin(exhaustAngle) * 40;
+    if (this.isThrusting && !this.thrusterSound.isPlaying) {
+      this.thrusterSound.play();
+    } else if (!this.isThrusting && this.thrusterSound.isPlaying) {
+      this.thrusterSound.stop();
+    }
+
     for (let i = 0; i < this.flameSprites.length; i++) {
       const flame = this.flameSprites[i];
       flame.setVisible(this.isThrusting);
@@ -292,10 +312,12 @@ export class FlightScene extends Scene {
   private crash() {
     if (this.crashed) return;
     this.crashed = true;
+    this.sound.play("explosionCrunch", { volume: GameState.getSfxVolume() });
 
     this.cameras.main.shake(300, 0.02);
     this.time.delayedCall(400, () => {
       GameState.finishRun(this.maxAltitude, this.gearsCollected);
+      if (this.thrusterSound.isPlaying) this.thrusterSound.stop();
       this.flameSprites.forEach((f) => f.destroy());
       this.flameSprites = [];
       this.inputManager.destroy();
