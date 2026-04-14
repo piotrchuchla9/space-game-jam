@@ -22,6 +22,7 @@ export class FlightScene extends Scene {
     this.load.image("rocket", "assets/rocket.png");
     this.load.image("ground", "assets/ground.png");
     this.load.image("gear", "assets/gear.png");
+    this.load.image("bird", "assets/bird.png");
   }
 
   create() {
@@ -75,6 +76,12 @@ export class FlightScene extends Scene {
         if (labels.includes("rocket") && labels.includes("obstacle")) {
           const destroyed = this.rocket.takeDamage();
           if (destroyed) this.crash();
+        }
+
+        if (labels.includes("rocket") && labels.includes("bird")) {
+          const birdBody = pair.bodyA.label === "bird" ? pair.bodyA : pair.bodyB;
+          this.rocket.applyBirdHit(birdBody.velocity.x);
+          this.zoneManager.removeObstacleByBody(birdBody);
         }
 
         if (labels.includes("rocket") && labels.includes("ground")) {

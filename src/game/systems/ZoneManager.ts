@@ -57,25 +57,29 @@ export class ZoneManager {
     }
 
     private getSpawnInterval(altitude: number): number {
-        const base = 2000; // ms
+        if (altitude < 15000) return 800; // atmosphere — birds frequent
+        const base = 2000;
         const reduction = Math.floor(altitude / 500) * 100;
         return Math.max(500, base - reduction);
     }
 
     private spawnObstacleForZone(altitude: number, rocketX: number) {
         let type: ObstacleType;
-        if (altitude < 1000) type = 'bird';
-        else if (altitude < 3000) type = 'cloud';
+        if (altitude < 15000) type = 'bird';
         else type = 'asteroid';
 
-        // Spawn to side of rocket, at rocket's altitude
-        const side = Math.random() > 0.5 ? 1 : -1;
-        const x = rocketX + side * (400 + Math.random() * 200);
-        const rocketY = 1100 - altitude; // convert altitude to world Y
-        const y = rocketY - 300 - Math.random() * 600; // above rocket
+        const count = type === 'bird' ? 3 : 1;
+        for (let i = 0; i < count; i++) {
+            const side = Math.random() > 0.5 ? 1 : -1;
+            const x = rocketX + side * (300 + Math.random() * 400);
+            const rocketY = 1100 - altitude;
+            const y = type === 'bird'
+                ? rocketY - 700 - Math.random() * 400
+                : rocketY - 300 - Math.random() * 600;
 
-        const entity = spawnObstacle(this.scene, x, y, type);
-        this.obstacles.push(entity);
+            const entity = spawnObstacle(this.scene, x, y, type);
+            this.obstacles.push(entity);
+        }
     }
 
     private spawnGearNearRocket(altitude: number, rocketX: number) {
@@ -119,6 +123,15 @@ export class ZoneManager {
             }
             return true;
         });
+    }
+
+    removeObstacleByBody(obstacleBody: MatterJS.BodyType) {
+        const idx = this.obstacles.findIndex(o => o.body === obstacleBody || o.body.id === obstacleBody.id);
+        if (idx >= 0) {
+            this.obstacles[idx].graphic.destroy();
+            this.scene.matter.world.remove(this.obstacles[idx].body);
+            this.obstacles.splice(idx, 1);
+        }
     }
 
     removeGearByBody(gearBody: MatterJS.BodyType) {
