@@ -4,6 +4,7 @@ import { BuildScene } from "./scenes/BuildScene";
 import { FlightScene } from "./scenes/FlightScene";
 import { HUDScene } from "./scenes/HUDScene";
 import { CrashScene } from "./scenes/CrashScene";
+import { AchievementsScene } from "./scenes/AchievementsScene";
 import { GameState } from "./GameState";
 
 const config: Types.Core.GameConfig = {
@@ -26,7 +27,7 @@ const config: Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [MenuScene, BuildScene, FlightScene, HUDScene, CrashScene],
+  scene: [MenuScene, BuildScene, FlightScene, HUDScene, CrashScene, AchievementsScene],
 };
 
 const StartGame = (parent: string) => {

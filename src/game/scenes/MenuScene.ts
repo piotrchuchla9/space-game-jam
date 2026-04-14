@@ -36,6 +36,16 @@ export class MenuScene extends Scene {
             this.scene.start('BuildScene');
         });
 
+        const achBtn = this.add.text(cx, 780, '[ ACHIEVEMENTS ]', {
+            fontSize: '28px',
+            color: '#ffcc00',
+            fontFamily: 'monospace',
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        achBtn.on('pointerover', () => achBtn.setColor('#ffffff'));
+        achBtn.on('pointerout', () => achBtn.setColor('#ffcc00'));
+        achBtn.on('pointerdown', () => this.scene.start('AchievementsScene'));
+
         this.add.text(cx, 1100, 'MACHINES JAM 2026', {
             fontSize: '20px',
             color: '#666666',

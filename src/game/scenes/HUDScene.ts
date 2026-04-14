@@ -1,9 +1,13 @@
 import { Scene, GameObjects } from 'phaser';
+import { GameState } from '../GameState';
+import { getAchievementName } from '../systems/AchievementManager';
 
 export class HUDScene extends Scene {
     private altText!: GameObjects.Text;
     private zoneText!: GameObjects.Text;
     private fuelBar!: GameObjects.Rectangle;
+    private notificationQueue: string[] = [];
+    private isShowingNotification: boolean = false;
 
     constructor() {
         super('HUDScene');
@@ -49,6 +53,79 @@ export class HUDScene extends Scene {
                 'SPACE': '#cc88ff',
             };
             this.zoneText.setColor(zoneColors[data.zone] ?? '#88aaff');
+        });
+
+        this.time.addEvent({
+            delay: 1000,
+            loop: true,
+            callback: () => {
+                if (GameState.pendingAchievementNotifications.length > 0) {
+                    this.notificationQueue.push(...GameState.pendingAchievementNotifications);
+                    GameState.pendingAchievementNotifications = [];
+                    if (!this.isShowingNotification) {
+                        this.showNextNotification();
+                    }
+                }
+            },
+        });
+
+        this.checkPendingAchievements();
+    }
+
+    private checkPendingAchievements() {
+        if (GameState.pendingAchievementNotifications.length > 0) {
+            this.notificationQueue.push(...GameState.pendingAchievementNotifications);
+            GameState.pendingAchievementNotifications = [];
+            this.showNextNotification();
+        }
+    }
+
+    private showNextNotification() {
+        if (this.notificationQueue.length === 0) {
+            this.isShowingNotification = false;
+            return;
+        }
+
+        this.isShowingNotification = true;
+        const achievementId = this.notificationQueue.shift()!;
+        const name = getAchievementName(achievementId);
+
+        const screenH = this.cameras.main.height;
+        const bannerY = screenH + 30;
+        const targetY = screenH - 50;
+
+        const bg = this.add.rectangle(360, bannerY, 400, 50, 0x000000, 0.8)
+            .setStrokeStyle(1, 0xffcc00);
+
+        const text = this.add.text(360, bannerY, `ACHIEVEMENT: ${name}`, {
+            fontSize: '16px',
+            color: '#ffcc00',
+            fontFamily: 'monospace',
+            fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        // Slide in from bottom
+        this.tweens.add({
+            targets: [bg, text],
+            y: targetY,
+            duration: 400,
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                // Hold for 3 seconds, then slide out
+                this.time.delayedCall(3000, () => {
+                    this.tweens.add({
+                        targets: [bg, text],
+                        y: screenH + 30,
+                        duration: 300,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            bg.destroy();
+                            text.destroy();
+                            this.showNextNotification();
+                        },
+                    });
+                });
+            },
         });
     }
 }
