@@ -119,7 +119,8 @@ class GameStateClass {
         const newlyUnlocked = checkAchievements(
             Math.floor(altitude),
             this.unlockedAchievements,
-            this.wavedashReady
+            this.wavedashReady,
+            gears
         );
         if (newlyUnlocked.length > 0) {
             this.unlockedAchievements.push(...newlyUnlocked);
