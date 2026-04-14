@@ -6,6 +6,13 @@ import { spawnCanister } from '../objects/Canister';
 interface SpawnedEntity {
     graphic: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
     body: MatterJS.BodyType;
+    type?: string;
+    birdWave?: {
+        baseY: number;
+        amplitude: number;
+        frequency: number;
+        phase: number;
+    };
 }
 
 export class ZoneManager {
@@ -16,6 +23,7 @@ export class ZoneManager {
     private spawnTimer: number = 0;
     private gearTimer: number = 0;
     private canisterTimer: number = 0;
+    private elapsed: number = 0;
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -25,6 +33,7 @@ export class ZoneManager {
         this.spawnTimer += delta;
         this.gearTimer += delta;
         this.canisterTimer += delta;
+        this.elapsed += delta;
 
         // Spawn obstacles based on zone
         const spawnInterval = this.getSpawnInterval(altitude);
@@ -57,6 +66,15 @@ export class ZoneManager {
         if (altitude >= 1000 && altitude < 3000) {
             if (Math.random() < delta / 3000) {
                 this.applyTurbulence();
+            }
+        }
+
+        // Birds: sinusoidal vertical motion
+        for (const e of this.obstacles) {
+            if (e.birdWave) {
+                const targetY = e.birdWave.baseY
+                    + Math.sin(this.elapsed * e.birdWave.frequency + e.birdWave.phase) * e.birdWave.amplitude;
+                this.scene.matter.body.setPosition(e.body, { x: e.body.position.x, y: targetY });
             }
         }
 

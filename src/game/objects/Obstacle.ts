@@ -33,8 +33,17 @@ export function spawnObstacle(scene: Scene, x: number, y: number, type: Obstacle
     });
 
     if (type === 'bird') {
-        (graphic as Phaser.GameObjects.Image).setFlipX(direction > 0);
+        (graphic as Phaser.GameObjects.Image).setFlipX(direction < 0);
     }
 
-    return { graphic, body, type };
+    const birdWave = type === 'bird'
+        ? {
+            baseY: y,
+            amplitude: 30 + Math.random() * 40,
+            frequency: 0.003 + Math.random() * 0.003,
+            phase: Math.random() * Math.PI * 2,
+        }
+        : undefined;
+
+    return { graphic, body, type, birdWave };
 }
