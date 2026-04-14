@@ -1,4 +1,5 @@
 import { PARTS } from './parts';
+import { checkAchievements } from './systems/AchievementManager';
 
 const STORAGE_KEY = 'rocketbuilder_save';
 
@@ -20,6 +21,7 @@ interface SaveData {
     currency: number;
     highscore: number;
     unlockedParts: string[];
+    unlockedAchievements: string[];
 }
 
 class GameStateClass {
@@ -27,6 +29,8 @@ class GameStateClass {
     highscore: number = 0;
     unlockedParts: string[] = [];
     wavedashReady: boolean = false;
+    unlockedAchievements: string[] = [];
+    pendingAchievementNotifications: string[] = [];
 
     rocketConfig: RocketConfig = {
         nose: 'standardCone',
@@ -95,6 +99,17 @@ class GameStateClass {
         }
         this.save();
         this.submitToLeaderboard(Math.floor(altitude));
+
+        const newlyUnlocked = checkAchievements(
+            Math.floor(altitude),
+            this.unlockedAchievements,
+            this.wavedashReady
+        );
+        if (newlyUnlocked.length > 0) {
+            this.unlockedAchievements.push(...newlyUnlocked);
+            this.pendingAchievementNotifications.push(...newlyUnlocked);
+            this.save();
+        }
     }
 
     private async submitToLeaderboard(altitude: number) {
@@ -113,6 +128,7 @@ class GameStateClass {
             currency: this.currency,
             highscore: this.highscore,
             unlockedParts: this.unlockedParts,
+            unlockedAchievements: this.unlockedAchievements,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
@@ -125,6 +141,7 @@ class GameStateClass {
             this.currency = data.currency ?? 0;
             this.highscore = data.highscore ?? 0;
             this.unlockedParts = data.unlockedParts ?? [];
+            this.unlockedAchievements = data.unlockedAchievements ?? [];
         } catch {
             // corrupted save, start fresh
         }
@@ -135,6 +152,8 @@ class GameStateClass {
         this.currency = 0;
         this.highscore = 0;
         this.unlockedParts = [];
+        this.unlockedAchievements = [];
+        this.pendingAchievementNotifications = [];
         this.initDefaultUnlocks();
     }
 }

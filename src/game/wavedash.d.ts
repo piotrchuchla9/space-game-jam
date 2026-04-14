@@ -30,4 +30,7 @@ declare namespace WavedashJS {
     function getUserId(): string;
     function getOrCreateLeaderboard(name: string, sortOrder: number, displayType: number): Promise<LeaderboardResponse>;
     function uploadLeaderboardScore(leaderboardId: string, score: number, keepBest: boolean, ugcId?: string): Promise<{ success: boolean; data: any }>;
+    function setAchievement(achievementName: string): void;
+    function getAchievement(achievementName: string): boolean;
+    function storeStats(): void;
 }
