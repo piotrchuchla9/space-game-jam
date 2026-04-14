@@ -7,6 +7,7 @@ const FONT = "KenneyFuture";
 export class HUDScene extends Scene {
   private altText!: GameObjects.Text;
   private spdText!: GameObjects.Text;
+  private timeText!: GameObjects.Text;
   private zoneText!: GameObjects.Text;
   private gearText!: GameObjects.Text;
   private fuelFill!: GameObjects.Rectangle;
@@ -29,24 +30,30 @@ export class HUDScene extends Scene {
   create() {
     // --- Left panel: ALT + SPD + ZONE ---
     this.add
-      .image(90, 52, "ui_panel")
-      .setDisplaySize(160, 80)
+      .image(90, 62, "ui_panel")
+      .setDisplaySize(160, 104)
       .setAlpha(0.75)
       .setOrigin(0.5, 0.5);
 
-    this.altText = this.add.text(16, 14, "ALT: 0", {
+    this.altText = this.add.text(16, 12, "ALT: 0", {
       fontSize: "18px",
       color: "#000000",
       fontFamily: FONT,
     });
 
-    this.spdText = this.add.text(16, 38, "SPD: 0", {
+    this.spdText = this.add.text(16, 34, "SPD: 0", {
       fontSize: "18px",
       color: "#000000",
       fontFamily: FONT,
     });
 
-    this.zoneText = this.add.text(16, 60, "ATMOSPHERE", {
+    this.timeText = this.add.text(16, 56, "TIME: 0.00 s", {
+      fontSize: "16px",
+      color: "#000000",
+      fontFamily: FONT,
+    });
+
+    this.zoneText = this.add.text(16, 80, "ATMOSPHERE", {
       fontSize: "15px",
       color: "#000000",
       fontFamily: FONT,
@@ -99,9 +106,11 @@ export class HUDScene extends Scene {
       zone: string;
       gears: number;
       speed: number;
+      time: number;
     }) => {
       this.altText.setText(`ALT: ${data.altitude}`);
       this.spdText.setText(`SPD: ${data.speed}`);
+      this.timeText.setText(`TIME: ${data.time.toFixed(2)} s`);
       this.gearText.setText(`${data.gears}`);
 
       const zoneColors: Record<string, string> = {

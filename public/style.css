@@ -1,3 +1,9 @@
+@font-face {
+    font-family: 'KenneyFuture';
+    src: url('assets/KenneyFuture.ttf') format('truetype');
+    font-display: block;
+}
+
 body {
     margin: 0;
     padding: 0;

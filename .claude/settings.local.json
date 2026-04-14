@@ -14,7 +14,12 @@
       "Bash(curl -s http://localhost:8080)",
       "WebSearch",
       "WebFetch(domain:docs.wavedash.com)",
-      "WebFetch(domain:www.npmjs.com)"
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(wc:*)",
+      "Bash(/c/Users/piotr/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh:*)",
+      "Bash(cat /e/projects/space-game-jam/space-game-jam/.superpowers/brainstorm/*/state/server-info)",
+      "mcp__lean-ctx__ctx_read",
+      "mcp__lean-ctx__ctx_shell"
     ]
   }
 }
