@@ -26,6 +26,7 @@ class GameStateClass {
     currency: number = 0;
     highscore: number = 0;
     unlockedParts: string[] = [];
+    wavedashReady: boolean = false;
 
     rocketConfig: RocketConfig = {
         nose: 'standardCone',
@@ -93,6 +94,18 @@ class GameStateClass {
             this.highscore = score;
         }
         this.save();
+        this.submitToLeaderboard(Math.floor(altitude));
+    }
+
+    private async submitToLeaderboard(altitude: number) {
+        if (typeof WavedashJS === 'undefined' || !this.wavedashReady) return;
+        try {
+            const response = await WavedashJS.getOrCreateLeaderboard('max-altitude', 1, 0);
+            await WavedashJS.uploadLeaderboardScore(response.data.id, altitude, true);
+            console.log('Leaderboard score submitted:', altitude);
+        } catch (e) {
+            console.warn('Wavedash leaderboard submit failed:', e);
+        }
     }
 
     save() {

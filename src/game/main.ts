@@ -4,6 +4,7 @@ import { BuildScene } from './scenes/BuildScene';
 import { FlightScene } from './scenes/FlightScene';
 import { HUDScene } from './scenes/HUDScene';
 import { CrashScene } from './scenes/CrashScene';
+import { GameState } from './GameState';
 
 const config: Types.Core.GameConfig = {
     type: AUTO,
@@ -29,6 +30,14 @@ const config: Types.Core.GameConfig = {
 };
 
 const StartGame = (parent: string) => {
+    if (typeof WavedashJS !== 'undefined') {
+        WavedashJS.init({ debug: true, deferEvents: true });
+        WavedashJS.addEventListener(WavedashJS.Events.BACKEND_CONNECTED, () => {
+            console.log('Wavedash backend connected');
+            GameState.wavedashReady = true;
+        });
+        WavedashJS.readyForEvents();
+    }
     return new Game({ ...config, parent });
 };
 

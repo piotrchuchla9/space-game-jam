@@ -1,0 +1,6 @@
+game_id = "j97c85czx4v3g0bd0phvw62jsn84tnv8"
+upload_dir = "./dist"
+
+[custom]
+version = "1.0.0"
+entrypoint = "index.html"
