@@ -70,7 +70,7 @@ export class Rocket {
         const parts = this.scene.matter.bodies.rectangle(x + asymmetry, y, 30, 80, {
             label: 'rocket',
             frictionAir: this.angularDamping,
-            density: totalWeight * 0.001,
+            density: totalWeight * 0.003,
         });
 
         this.body = parts;
@@ -87,8 +87,8 @@ export class Rocket {
         if (this.fuel <= 0) return;
 
         const angle = this.body.angle - Math.PI / 2; // "up" direction of body
-        const forceX = Math.cos(angle) * this.thrust * 0.01;
-        const forceY = Math.sin(angle) * this.thrust * 0.01;
+        const forceX = Math.cos(angle) * this.thrust * 0.004;
+        const forceY = Math.sin(angle) * this.thrust * 0.004;
 
         this.scene.matter.body.applyForce(this.body, this.body.position, {
             x: forceX,
@@ -101,9 +101,15 @@ export class Rocket {
 
     applySideThrust(direction: -1 | 1) {
         const angle = this.body.angle;
-        const force = direction * this.control * 0.005;
+        const force = direction * this.control * 0.0015;
 
-        this.scene.matter.body.applyForce(this.body, this.body.position, {
+        // Apply at bottom of rocket to create torque
+        const applyPoint = {
+            x: this.body.position.x + Math.sin(angle) * 40,
+            y: this.body.position.y - Math.cos(angle) * 40,
+        };
+
+        this.scene.matter.body.applyForce(this.body, applyPoint, {
             x: Math.cos(angle) * force,
             y: Math.sin(angle) * force,
         });
