@@ -29,11 +29,13 @@ export class ZoneManager {
             this.spawnObstacleForZone(altitude, rocketX);
         }
 
-        // Spawn gears
-        const gearInterval = altitude < 1000 ? 2000 : altitude < 3000 ? 1200 : 2500;
-        if (this.gearTimer >= gearInterval) {
-            this.gearTimer = 0;
-            this.spawnGearNearRocket(altitude, rocketX);
+        // Spawn gears (only after launch)
+        if (altitude > 0) {
+            const gearInterval = altitude < 1000 ? 2000 : altitude < 3000 ? 1200 : 2500;
+            if (this.gearTimer >= gearInterval) {
+                this.gearTimer = 0;
+                this.spawnGearNearRocket(altitude, rocketX);
+            }
         }
 
         // Cleanup far-away entities
@@ -57,7 +59,7 @@ export class ZoneManager {
     }
 
     private getSpawnInterval(altitude: number): number {
-        if (altitude < 15000) return 800; // atmosphere — birds frequent
+        if (altitude < 15000) return 1400; // atmosphere — birds
         const base = 2000;
         const reduction = Math.floor(altitude / 500) * 100;
         return Math.max(500, base - reduction);
@@ -68,7 +70,7 @@ export class ZoneManager {
         if (altitude < 15000) type = 'bird';
         else type = 'asteroid';
 
-        const count = type === 'bird' ? 3 : 1;
+        const count = type === 'bird' ? 2 : 1;
         for (let i = 0; i < count; i++) {
             const side = Math.random() > 0.5 ? 1 : -1;
             const x = rocketX + side * (300 + Math.random() * 400);

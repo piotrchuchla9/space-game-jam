@@ -13,6 +13,8 @@ export class FlightScene extends Scene {
   private isThrusting: boolean = false;
   private crashed: boolean = false;
   private gearsCollected: number = 0;
+  private currentZoom: number = 1.4;
+  private currentFollowOffsetY: number = 150;
 
   constructor() {
     super("FlightScene");
@@ -52,7 +54,8 @@ export class FlightScene extends Scene {
       .image(this.rocket.body.position.x, this.rocket.body.position.y, "rocket")
       .setDisplaySize(30, 80);
     this.cameras.main.startFollow(rocketGraphic, false, 0.1, 0.1);
-    this.cameras.main.setFollowOffset(0, 500);
+    this.cameras.main.setFollowOffset(0, this.currentFollowOffsetY);
+    this.cameras.main.setZoom(this.currentZoom);
 
     // Store reference for camera tracking
     this.data.set("rocketGraphic", rocketGraphic);
@@ -149,6 +152,15 @@ export class FlightScene extends Scene {
     if (this.altitude > this.maxAltitude) {
       this.maxAltitude = this.altitude;
     }
+
+    // Camera zoom + offset: zoomed in before launch, zoom out after
+    const targetZoom = this.altitude > 0 ? 0.8 : 1.4;
+    const targetOffsetY = this.altitude > 0 ? 500 : 150;
+    const lerpFactor = Math.min(1, delta * 0.002);
+    this.currentZoom += (targetZoom - this.currentZoom) * lerpFactor;
+    this.currentFollowOffsetY += (targetOffsetY - this.currentFollowOffsetY) * lerpFactor;
+    this.cameras.main.setZoom(this.currentZoom);
+    this.cameras.main.setFollowOffset(0, this.currentFollowOffsetY);
 
     // Zone manager update (spawning gears/obstacles)
     this.zoneManager.update(delta, this.altitude, this.rocket.body.position.x);
