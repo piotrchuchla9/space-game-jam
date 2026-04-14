@@ -26,12 +26,26 @@ export class BuildScene extends Scene {
     private slotLabels: Map<string, GameObjects.Text> = new Map();
     private partPanel: GameObjects.Container | null = null;
     private launchBtn!: GameObjects.Text;
+    private soundtrack!: Phaser.Sound.BaseSound;
 
     constructor() {
         super('BuildScene');
     }
 
+    preload() {
+        this.load.audio('soundtrack', 'assets/soundtrack.mp3');
+    }
+
     create() {
+        this.soundtrack = this.sound.add('soundtrack', {
+            loop: true,
+            volume: GameState.getMusicVolume(),
+        });
+        this.soundtrack.play();
+
+        this.events.on('shutdown', () => {
+            this.soundtrack.stop();
+        });
         // Header
         this.budgetText = this.add.text(20, 30, '', {
             fontSize: '24px', color: '#ffffff', fontFamily: 'monospace'

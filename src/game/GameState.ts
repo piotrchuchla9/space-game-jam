@@ -22,6 +22,10 @@ interface SaveData {
     highscore: number;
     unlockedParts: string[];
     unlockedAchievements: string[];
+    musicVolume?: number;
+    sfxVolume?: number;
+    musicMuted?: boolean;
+    sfxMuted?: boolean;
 }
 
 class GameStateClass {
@@ -31,6 +35,18 @@ class GameStateClass {
     wavedashReady: boolean = false;
     unlockedAchievements: string[] = [];
     pendingAchievementNotifications: string[] = [];
+    musicVolume: number = 0.5;
+    sfxVolume: number = 0.5;
+    musicMuted: boolean = false;
+    sfxMuted: boolean = false;
+
+    getMusicVolume(): number {
+        return this.musicMuted ? 0 : this.musicVolume;
+    }
+
+    getSfxVolume(): number {
+        return this.sfxMuted ? 0 : this.sfxVolume;
+    }
 
     rocketConfig: RocketConfig = {
         nose: 'standardCone',
@@ -128,6 +144,10 @@ class GameStateClass {
             highscore: this.highscore,
             unlockedParts: this.unlockedParts,
             unlockedAchievements: this.unlockedAchievements,
+            musicVolume: this.musicVolume,
+            sfxVolume: this.sfxVolume,
+            musicMuted: this.musicMuted,
+            sfxMuted: this.sfxMuted,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
@@ -141,6 +161,10 @@ class GameStateClass {
             this.highscore = data.highscore ?? 0;
             this.unlockedParts = data.unlockedParts ?? [];
             this.unlockedAchievements = data.unlockedAchievements ?? [];
+            this.musicVolume = data.musicVolume ?? 0.5;
+            this.sfxVolume = data.sfxVolume ?? 0.5;
+            this.musicMuted = data.musicMuted ?? false;
+            this.sfxMuted = data.sfxMuted ?? false;
         } catch {
             // corrupted save, start fresh
         }
