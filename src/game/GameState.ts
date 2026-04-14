@@ -117,7 +117,6 @@ class GameStateClass {
         try {
             const response = await WavedashJS.getOrCreateLeaderboard('max-altitude', 1, 0);
             await WavedashJS.uploadLeaderboardScore(response.data.id, altitude, true);
-            console.log('Leaderboard score submitted:', altitude);
         } catch (e) {
             console.warn('Wavedash leaderboard submit failed:', e);
         }

@@ -37,7 +37,6 @@ export class InputManager {
                 left: this.scene.input.keyboard.addKey(Input.Keyboard.KeyCodes.LEFT),
                 right: this.scene.input.keyboard.addKey(Input.Keyboard.KeyCodes.RIGHT),
             };
-            console.log('Keyboard initialized:', this.keys);
         } else {
             console.warn('Keyboard plugin not available!');
         }

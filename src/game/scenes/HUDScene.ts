@@ -12,6 +12,7 @@ export class HUDScene extends Scene {
   private fuelFill!: GameObjects.Rectangle;
   private notificationQueue: string[] = [];
   private isShowingNotification: boolean = false;
+  private hudUpdateHandler?: Function;
 
   constructor() {
     super("HUDScene");
@@ -91,33 +92,36 @@ export class HUDScene extends Scene {
 
     // Listen for HUD updates from FlightScene
     const flightScene = this.scene.get("FlightScene");
-    flightScene.events.on(
-      "updateHUD",
-      (data: {
-        altitude: number;
-        fuel: number;
-        maxFuel: number;
-        zone: string;
-        gears: number;
-        speed: number;
-      }) => {
-        this.altText.setText(`ALT: ${data.altitude}`);
-        this.spdText.setText(`SPD: ${data.speed}`);
-        this.gearText.setText(`${data.gears}`);
+    this.hudUpdateHandler = (data: {
+      altitude: number;
+      fuel: number;
+      maxFuel: number;
+      zone: string;
+      gears: number;
+      speed: number;
+    }) => {
+      this.altText.setText(`ALT: ${data.altitude}`);
+      this.spdText.setText(`SPD: ${data.speed}`);
+      this.gearText.setText(`${data.gears}`);
 
-        const zoneColors: Record<string, string> = {
-          ATMOSPHERE: "#1144aa",
-          TURBULENCE: "#883300",
-          SPACE: "#440088",
-        };
-        this.zoneText.setText(data.zone);
-        this.zoneText.setColor(zoneColors[data.zone] ?? "#000000");
+      const zoneColors: Record<string, string> = {
+        ATMOSPHERE: "#1144aa",
+        TURBULENCE: "#883300",
+        SPACE: "#440088",
+      };
+      this.zoneText.setText(data.zone);
+      this.zoneText.setColor(zoneColors[data.zone] ?? "#000000");
 
-        const pct = Math.max(0, data.fuel / data.maxFuel);
-        this.fuelFill.setSize(130 * pct, 14);
-        this.fuelFill.setFillStyle(pct > 0.3 ? 0x44ff44 : 0xff4444);
-      },
-    );
+      const pct = Math.max(0, data.fuel / data.maxFuel);
+      this.fuelFill.setSize(130 * pct, 14);
+      this.fuelFill.setFillStyle(pct > 0.3 ? 0x44ff44 : 0xff4444);
+    };
+    flightScene.events.on("updateHUD", this.hudUpdateHandler, this);
+
+    // Clean up the cross-scene listener when this scene shuts down
+    this.events.on("shutdown", () => {
+      flightScene.events.off("updateHUD", this.hudUpdateHandler as Function, this);
+    });
 
     this.time.addEvent({
       delay: 1000,
@@ -194,22 +198,6 @@ export class HUDScene extends Scene {
             },
           });
         });
-      },
-    });
-
-    this.time.addEvent({
-      delay: 1000,
-      loop: true,
-      callback: () => {
-        if (GameState.pendingAchievementNotifications.length > 0) {
-          this.notificationQueue.push(
-            ...GameState.pendingAchievementNotifications,
-          );
-          GameState.pendingAchievementNotifications = [];
-          if (!this.isShowingNotification) {
-            this.showNextNotification();
-          }
-        }
       },
     });
 
