@@ -41,7 +41,9 @@ export class AchievementsScene extends Scene {
             }).setOrigin(0, 0.5);
 
             // Threshold
-            const desc = `Reach ${ach.altitudeThreshold.toLocaleString()} altitude`;
+            const desc = ach.gearsThreshold !== undefined
+                ? `Collect ${ach.gearsThreshold.toLocaleString()} gears in one flight`
+                : `Reach ${ach.altitudeThreshold!.toLocaleString()} altitude`;
             this.add.text(160, y + 16, desc, {
                 fontSize: '14px',
                 color: unlocked ? '#88aaff' : '#333333',

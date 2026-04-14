@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { GameState } from '../GameState';
+import { getAchievementName } from '../systems/AchievementManager';
 
 export class CrashScene extends Scene {
     constructor() {
@@ -58,5 +59,42 @@ export class CrashScene extends Scene {
         menuBtn.on('pointerover', () => menuBtn.setColor('#ffffff'));
         menuBtn.on('pointerout', () => menuBtn.setColor('#888888'));
         menuBtn.on('pointerdown', () => this.scene.start('MenuScene'));
+
+        // Achievement toasts for anything unlocked this run
+        if (GameState.pendingAchievementNotifications.length > 0) {
+            const unlocked = [...GameState.pendingAchievementNotifications];
+            GameState.pendingAchievementNotifications = [];
+            unlocked.forEach((id, i) => this.showAchievementToast(id, i));
+        }
+    }
+
+    private showAchievementToast(achievementId: string, index: number) {
+        const cx = 360;
+        const screenH = this.cameras.main.height;
+        const bannerY = screenH + 30;
+        const targetY = screenH - 60 - index * 70;
+        const name = getAchievementName(achievementId);
+
+        const bg = this.add.rectangle(cx, bannerY, 440, 54, 0x000000, 0.85)
+            .setStrokeStyle(2, 0xffcc00);
+        const text = this.add.text(cx, bannerY, `ACHIEVEMENT: ${name}`, {
+            fontSize: '18px', color: '#ffcc00', fontFamily: 'monospace', fontStyle: 'bold',
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+            targets: [bg, text],
+            y: targetY,
+            duration: 500,
+            delay: index * 200,
+            ease: 'Back.easeOut',
+        });
+        this.time.delayedCall(3500 + index * 200, () => {
+            this.tweens.add({
+                targets: [bg, text],
+                alpha: 0,
+                duration: 500,
+                onComplete: () => { bg.destroy(); text.destroy(); },
+            });
+        });
     }
 }

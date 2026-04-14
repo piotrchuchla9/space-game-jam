@@ -114,12 +114,13 @@ class GameStateClass {
             this.highscore = score;
         }
         this.save();
-        this.submitToLeaderboard(Math.floor(altitude));
+        this.submitToLeaderboard(Math.floor(altitude), gears);
 
         const newlyUnlocked = checkAchievements(
             Math.floor(altitude),
             this.unlockedAchievements,
-            this.wavedashReady
+            this.wavedashReady,
+            gears
         );
         if (newlyUnlocked.length > 0) {
             this.unlockedAchievements.push(...newlyUnlocked);
@@ -128,13 +129,19 @@ class GameStateClass {
         }
     }
 
-    private async submitToLeaderboard(altitude: number) {
+    private async submitToLeaderboard(altitude: number, gears: number) {
         if (typeof WavedashJS === 'undefined' || !this.wavedashReady) return;
         try {
-            const response = await WavedashJS.getOrCreateLeaderboard('max-altitude', 1, 0);
-            await WavedashJS.uploadLeaderboardScore(response.data.id, altitude, true);
+            const altResp = await WavedashJS.getOrCreateLeaderboard('max-altitude', 1, 0);
+            await WavedashJS.uploadLeaderboardScore(altResp.data.id, altitude, true);
         } catch (e) {
-            console.warn('Wavedash leaderboard submit failed:', e);
+            console.warn('Wavedash altitude leaderboard submit failed:', e);
+        }
+        try {
+            const gearsResp = await WavedashJS.getOrCreateLeaderboard('max-gears', 1, 0);
+            await WavedashJS.uploadLeaderboardScore(gearsResp.data.id, gears, true);
+        } catch (e) {
+            console.warn('Wavedash gears leaderboard submit failed:', e);
         }
     }
 
