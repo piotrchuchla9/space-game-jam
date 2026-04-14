@@ -31,6 +31,7 @@ export class FlightScene extends Scene {
     this.load.audio("explosionCrunch", "assets/explosionCrunch.ogg");
     this.load.audio("gearPickup", "assets/gear.mp3");
     this.load.audio("birdHit", "assets/bird.mp3");
+    this.load.audio("fuelPickup", "assets/fuel.mp3");
     this.load.image("canister", "assets/canister.png");
 
     this.load.image("station_003", "assets/station_005.png");
@@ -121,6 +122,7 @@ export class FlightScene extends Scene {
             pair.bodyA.label === "canister" ? pair.bodyA : pair.bodyB;
           this.zoneManager.removeCanisterByBody(canisterBody);
           this.rocket.addFuel(this.rocket.maxFuel * 0.25);
+          this.sound.play("fuelPickup", { volume: GameState.getSfxVolume() });
         }
       }
     });
