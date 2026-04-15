@@ -3,6 +3,7 @@ import { Rocket } from "../objects/Rocket";
 import { InputManager } from "../systems/InputManager";
 import { ZoneManager } from "../systems/ZoneManager";
 import { GameState } from "../GameState";
+import { PARTS } from "../parts";
 
 export class FlightScene extends Scene {
   private rocket!: Rocket;
@@ -72,16 +73,17 @@ export class FlightScene extends Scene {
     this.inputManager = new InputManager(this);
     this.zoneManager = new ZoneManager(this);
 
-    // Camera follows rocket
-    const rocketGraphic = this.add
-      .image(this.rocket.body.position.x, this.rocket.body.position.y, "rocket")
-      .setDisplaySize(30, 80);
-    this.cameras.main.startFollow(rocketGraphic, false, 0.1, 0.1);
+    // Build visual rocket from selected part sprites
+    const rocketContainer = this.buildRocketContainer(
+      this.rocket.body.position.x,
+      this.rocket.body.position.y,
+    );
+    this.cameras.main.startFollow(rocketContainer, false, 0.1, 0.1);
     this.cameras.main.setFollowOffset(0, this.currentFollowOffsetY);
     this.cameras.main.setZoom(this.currentZoom);
 
-    // Store reference for camera tracking
-    this.data.set("rocketGraphic", rocketGraphic);
+    // Store reference for update loop
+    this.data.set("rocketGraphic", rocketContainer);
 
     // Launch pad under rocket
     this.buildLaunchPad();
@@ -182,7 +184,13 @@ export class FlightScene extends Scene {
       { w: 6, h: 18 },
     ];
     this.flameSprites = flameColors.map((color, i) => {
-      const flame = this.add.ellipse(0, 0, flameSizes[i].w, flameSizes[i].h, color);
+      const flame = this.add.ellipse(
+        0,
+        0,
+        flameSizes[i].w,
+        flameSizes[i].h,
+        color,
+      );
       flame.setAlpha(0.9 - i * 0.1);
       flame.setVisible(false);
       return flame;
@@ -295,16 +303,16 @@ export class FlightScene extends Scene {
       time: this.timerStarted ? (this.time.now - this.launchTime) / 1000 : 0,
     });
 
-    // Update rocket graphic position (for camera)
-    const rocketGraphic = this.data.get(
+    // Sync rocket container with physics body
+    const rocketContainer = this.data.get(
       "rocketGraphic",
-    ) as Phaser.GameObjects.Image;
-    if (rocketGraphic) {
-      rocketGraphic.setPosition(
+    ) as Phaser.GameObjects.Container;
+    if (rocketContainer) {
+      rocketContainer.setPosition(
         this.rocket.body.position.x,
         this.rocket.body.position.y,
       );
-      rocketGraphic.setRotation(this.rocket.body.angle);
+      rocketContainer.setRotation(this.rocket.body.angle);
     }
 
     // Update flame sprites — follow rocket exhaust and animate
@@ -428,7 +436,12 @@ export class FlightScene extends Scene {
     });
   }
 
-  private buildSideWalls(left: number, right: number, top: number, bottom: number) {
+  private buildSideWalls(
+    left: number,
+    right: number,
+    top: number,
+    bottom: number,
+  ) {
     const thickness = 40;
     const height = bottom - top;
     const centerY = (top + bottom) / 2;
@@ -475,6 +488,57 @@ export class FlightScene extends Scene {
     }
   }
 
+  private buildRocketContainer(
+    x: number,
+    y: number,
+  ): Phaser.GameObjects.Container {
+    const SCALE = 0.45;
+    const cfg = GameState.rocketConfig;
+
+    const frameH = (key: string) =>
+      this.textures.get(key).source[0]?.height ?? 64;
+    const frameW = (key: string) =>
+      this.textures.get(key).source[0]?.width ?? 68;
+
+    const noseAsset = PARTS[cfg.nose]?.asset ?? "rp_001";
+    const bodyAsset = PARTS[cfg.body]?.asset ?? "rp_009";
+    const engAsset = PARTS[cfg.engine]?.asset ?? "rp_003";
+
+    const noseH = frameH(noseAsset) * SCALE;
+    const bodyH = frameH(bodyAsset) * SCALE;
+    const engH = frameH(engAsset) * SCALE;
+    const totalH = noseH + bodyH + engH;
+    const topY = -totalH / 2;
+
+    const noseCenterY = topY + noseH / 2;
+    const bodyCenterY = topY + noseH + bodyH / 2;
+    const engCenterY = topY + noseH + bodyH + engH / 2;
+
+    const noseImg = this.add.image(0, noseCenterY, noseAsset).setScale(SCALE);
+    const bodyImg = this.add.image(0, bodyCenterY, bodyAsset).setScale(SCALE);
+    const engImg = this.add.image(0, engCenterY, engAsset).setScale(SCALE);
+
+    const children: Phaser.GameObjects.Image[] = [noseImg, bodyImg, engImg];
+
+    if (cfg.sides && PARTS[cfg.sides]?.asset) {
+      const sideAsset = PARTS[cfg.sides].asset!;
+      const bodyW = frameW(bodyAsset) * SCALE;
+      const sideW = frameW(sideAsset) * SCALE;
+      const sideX = bodyW / 2 + sideW / 2;
+
+      const sidesL = this.add
+        .image(-sideX, bodyCenterY, sideAsset)
+        .setScale(SCALE)
+        .setFlipX(true);
+      const sidesR = this.add
+        .image(sideX, bodyCenterY, sideAsset)
+        .setScale(SCALE);
+      children.push(sidesL, sidesR);
+    }
+
+    return this.add.container(x, y, children);
+  }
+
   private buildLaunchPad() {
     const rx = 360; // rocket x
     const groundY = 1215;
@@ -513,7 +577,12 @@ export class FlightScene extends Scene {
       const elapsedSeconds = this.timerStarted
         ? (this.time.now - this.launchTime) / 1000
         : 0;
-      GameState.finishRun(this.maxAltitude, this.gearsCollected, elapsedSeconds, this.maxSpeed);
+      GameState.finishRun(
+        this.maxAltitude,
+        this.gearsCollected,
+        elapsedSeconds,
+        this.maxSpeed,
+      );
       if (this.thrusterSound.isPlaying) this.thrusterSound.stop();
       if (this.fuelAlertSound.isPlaying) this.fuelAlertSound.stop();
       this.flameSprites.forEach((f) => f.destroy());
