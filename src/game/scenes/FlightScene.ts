@@ -163,6 +163,10 @@ export class FlightScene extends Scene {
     this.scene.stop("HUDScene");
     this.scene.launch("HUDScene");
 
+    this.events.on("selfDestruct", () => {
+      if (this.maxAltitude > 50) this.crash();
+    });
+
     // Flame visuals — 3 layered ellipses for animated fire effect
     const flameColors = [0xff4500, 0xff8c00, 0xffdd00];
     const flameSizes = [
