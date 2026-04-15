@@ -22,7 +22,10 @@
       "mcp__lean-ctx__ctx_shell",
       "Bash(find *)",
       "Bash(python3 -c ' *)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'docs: Zone ambient background design spec *)",
+      "Bash(ls *)"
     ]
   }
 }

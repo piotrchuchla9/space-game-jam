@@ -2,6 +2,7 @@ import { Scene } from "phaser";
 import { Rocket } from "../objects/Rocket";
 import { InputManager } from "../systems/InputManager";
 import { ZoneManager } from "../systems/ZoneManager";
+import { ZoneAmbient } from "../systems/ZoneAmbient";
 import { GameState } from "../GameState";
 import { PARTS } from "../parts";
 
@@ -9,6 +10,7 @@ export class FlightScene extends Scene {
   private rocket!: Rocket;
   private inputManager!: InputManager;
   private zoneManager!: ZoneManager;
+  private zoneAmbient!: ZoneAmbient;
   private altitude: number = 0;
   private maxAltitude: number = 0;
   private maxSpeed: number = 0;
@@ -42,8 +44,16 @@ export class FlightScene extends Scene {
     this.load.audio("boost", "assets/boost.mp3");
     this.load.audio("shield", "assets/shield.mp3");
     this.load.image("canister", "assets/canister.png");
+    this.load.image("storm", "assets/storm.png");
+    this.load.audio("storm", "assets/storm.mp3");
+    this.load.image("meteor", "assets/meteor.png");
+    this.load.audio("meteor", "assets/meteor.mp3");
 
     this.load.image("station_003", "assets/station_005.png");
+
+    for (let i = 1; i <= 9; i++) {
+      this.load.image(`cloud${i}`, `assets/clouds/cloud${i}.png`);
+    }
   }
 
   create() {
@@ -72,6 +82,7 @@ export class FlightScene extends Scene {
     this.rocket = new Rocket(this, 360, 1100);
     this.inputManager = new InputManager(this);
     this.zoneManager = new ZoneManager(this);
+    this.zoneAmbient = new ZoneAmbient(this);
 
     // Build visual rocket from selected part sprites
     const rocketContainer = this.buildRocketContainer(
@@ -152,6 +163,26 @@ export class FlightScene extends Scene {
           this.rocket.activateBoost(1000);
           this.sound.play("boost", { volume: GameState.getSfxVolume() });
           this.showBoostNotification();
+        }
+
+        if (labels.includes("rocket") && labels.includes("meteor")) {
+          const meteorBody =
+            pair.bodyA.label === "meteor" ? pair.bodyA : pair.bodyB;
+          if (this.rocket.isShieldActive) {
+            this.zoneManager.removeMeteorByBody(meteorBody);
+          } else {
+            this.rocket.applyBirdHit(meteorBody.velocity.x);
+            this.sound.play("meteor", { volume: GameState.getSfxVolume() });
+            this.zoneManager.removeMeteorByBody(meteorBody);
+          }
+        }
+
+        if (labels.includes("rocket") && labels.includes("storm")) {
+          const stormBody =
+            pair.bodyA.label === "storm" ? pair.bodyA : pair.bodyB;
+          this.zoneManager.removeStormByBody(stormBody);
+          this.rocket.activateSlowdown(2000);
+          this.sound.play("storm", { volume: GameState.getSfxVolume() });
         }
 
         if (labels.includes("rocket") && labels.includes("shield")) {
@@ -263,6 +294,12 @@ export class FlightScene extends Scene {
 
     // Zone manager update (spawning gears/obstacles)
     this.zoneManager.update(delta, this.altitude, this.rocket.body.position.x);
+    this.zoneAmbient.update(
+      delta,
+      this.altitude,
+      this.cameras.main.scrollX,
+      this.cameras.main.scrollY,
+    );
 
     // Emit HUD update
     const vel = this.rocket.body.velocity;
@@ -592,6 +629,7 @@ export class FlightScene extends Scene {
       this.inputManager.destroy();
       this.rocket.destroy();
       this.zoneManager.destroy();
+      this.zoneAmbient.destroy();
       this.scene.stop("HUDScene");
       this.scene.start("CrashScene");
     });

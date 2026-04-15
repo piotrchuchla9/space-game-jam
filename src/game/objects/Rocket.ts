@@ -27,6 +27,9 @@ export class Rocket {
   // Shield state
   isShieldActive: boolean = false;
 
+    // Slowdown state (storm obstacle)
+    isSlowed: boolean = false;
+
   constructor(scene: Scene, x: number, y: number) {
     this.scene = scene;
     this.config = { ...GameState.rocketConfig };
@@ -131,6 +134,13 @@ export class Rocket {
     });
   }
 
+    activateSlowdown(duration: number = 2000) {
+        this.isSlowed = true;
+        this.scene.time.delayedCall(duration, () => {
+            this.isSlowed = false;
+        });
+    }
+
   activateBoost(duration: number = 1000) {
     this.isBoostActive = true;
     this.scene.time.delayedCall(duration, () => {
@@ -176,7 +186,8 @@ export class Rocket {
     const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
     if (speed < 0.1) return;
 
-    const dragForce = this.dragMultiplier * zoneMultiplier * 0.0003;
+        const slowMult = this.isSlowed ? 6 : 1;
+    const dragForce = this.dragMultiplier * zoneMultiplier * slowMult * 0.0003;
     this.scene.matter.body.applyForce(this.body, this.body.position, {
       x: -vel.x * dragForce,
       y: -vel.y * dragForce,
