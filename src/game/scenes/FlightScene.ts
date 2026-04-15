@@ -36,6 +36,8 @@ export class FlightScene extends Scene {
     this.load.audio("birdHit", "assets/bird.mp3");
     this.load.audio("fuelPickup", "assets/fuel.mp3");
     this.load.audio("fuelAlert", "assets/fuelAlert.mp3");
+    this.load.audio("boost", "assets/boost.mp3");
+    this.load.audio("shield", "assets/shield.mp3");
     this.load.image("canister", "assets/canister.png");
 
     this.load.image("station_003", "assets/station_005.png");
@@ -140,7 +142,7 @@ export class FlightScene extends Scene {
             pair.bodyA.label === "flame" ? pair.bodyA : pair.bodyB;
           this.zoneManager.removeFlameByBody(flameBody);
           this.rocket.activateBoost(1000);
-          this.sound.play("gearPickup", { volume: GameState.getSfxVolume() });
+          this.sound.play("boost", { volume: GameState.getSfxVolume() });
           this.showBoostNotification();
         }
 
@@ -149,7 +151,7 @@ export class FlightScene extends Scene {
             pair.bodyA.label === "shield" ? pair.bodyA : pair.bodyB;
           this.zoneManager.removeShieldByBody(shieldBody);
           this.rocket.activateShield(3000);
-          this.sound.play("gearPickup", { volume: GameState.getSfxVolume() });
+          this.sound.play("shield", { volume: GameState.getSfxVolume() });
           this.showShieldNotification();
         }
       }
