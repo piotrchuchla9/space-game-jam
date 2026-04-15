@@ -61,15 +61,37 @@ export class Rocket {
         const sidesWeight = (sidesMod?.weight ?? 0) * 2;
         const totalWeight = (nose.weight ?? 0) + (body.weight ?? 0) + (engine.weight ?? 0) + sidesWeight;
 
-        // Create physics body
-        const parts = this.scene.matter.bodies.rectangle(x, y, 30, 80, {
-            label: 'rocket',
-            frictionAir: this.angularDamping,
-            // Keep mass in a range where basic engine can overcome gravity.
-            density: totalWeight * 0.001,
-        });
+        // Create physics body — compound when sides are equipped so wings/pods register hits
+        if (sidesMod?.asset) {
+            const sideSrc = this.scene.textures.get(sidesMod.asset).source[0];
+            const SCALE = 0.45;
+            const sideW = (sideSrc?.width  ?? 40) * SCALE;
+            const sideH = (sideSrc?.height ?? 80) * SCALE;
+            const sideOffsetX = 15 + sideW / 2;
 
-        this.body = parts;
+            // Parts are positioned in world space; Matter recomputes CoM for the compound body
+            const bodyOpts = { label: 'rocket' };
+            const mainPart  = this.scene.matter.bodies.rectangle(x,               y, 30,    80,    bodyOpts);
+            const leftPart  = this.scene.matter.bodies.rectangle(x - sideOffsetX, y, sideW, sideH, bodyOpts);
+            const rightPart = this.scene.matter.bodies.rectangle(x + sideOffsetX, y, sideW, sideH, bodyOpts);
+
+            const compound = (this.scene.matter as any).body.create({
+                parts: [mainPart, leftPart, rightPart],
+                label: 'rocket',
+                frictionAir: this.angularDamping,
+                density: totalWeight * 0.001,
+            }) as MatterJS.BodyType;
+
+            this.body = compound;
+        } else {
+            this.body = this.scene.matter.bodies.rectangle(x, y, 30, 80, {
+                label: 'rocket',
+                frictionAir: this.angularDamping,
+                // Keep mass in a range where basic engine can overcome gravity.
+                density: totalWeight * 0.001,
+            });
+        }
+
         this.startY = y;
 
         this.scene.matter.world.add(this.body);
