@@ -9,7 +9,6 @@ export interface PartDef {
     unlockCost: number | null; // null = available from start
     // Slot-specific stats
     drag?: number;           // nose
-    hp?: number;             // body
     thrust?: number;         // engine
     control?: number;        // engine
     fuelBurn?: number;       // engine
@@ -44,7 +43,6 @@ export const PARTS: Record<string, PartDef> = {
         weight: 2,
         budgetCost: 15,
         unlockCost: null,
-        hp: 1,
     },
     armoredFrame: {
         id: 'armoredFrame',
@@ -53,7 +51,6 @@ export const PARTS: Record<string, PartDef> = {
         weight: 5,
         budgetCost: 35,
         unlockCost: 60,
-        hp: 3,
     },
     basicEngine: {
         id: 'basicEngine',
@@ -110,5 +107,5 @@ export function getPartsForSlot(slot: SlotType): PartDef[] {
     return Object.values(PARTS).filter(p => p.slot === slot);
 }
 
-export const BUILD_BUDGET = 100;
+export const BUILD_BUDGET = 1000;
 export const BASE_FUEL = 20;

@@ -10,8 +10,6 @@ export class Rocket {
     // Runtime state
     fuel: number;
     maxFuel: number;
-    hp: number;
-    maxHP: number;
     shieldHP: number;
     thrust: number;
     control: number;
@@ -44,8 +42,6 @@ export class Rocket {
         this.control = engine.control ?? 0.8;
         this.fuelBurn = engine.fuelBurn ?? 1.0;
         this.dragMultiplier = nose.drag ?? 1.0;
-        this.hp = body.hp ?? 1;
-        this.maxHP = this.hp;
 
         // Module bonuses
         let bonusFuel = 0;
@@ -77,7 +73,7 @@ export class Rocket {
             label: 'rocket',
             frictionAir: this.angularDamping,
             // Keep mass in a range where basic engine can overcome gravity.
-            density: totalWeight * 0.002,
+            density: totalWeight * 0.001,
         });
 
         this.body = parts;
@@ -167,8 +163,7 @@ export class Rocket {
             this.shieldHP--;
             return false; // survived
         }
-        this.hp--;
-        return this.hp <= 0; // true = destroyed
+        return true; // destroyed
     }
 
     destroy() {

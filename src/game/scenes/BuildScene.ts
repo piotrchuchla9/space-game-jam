@@ -1,12 +1,12 @@
 import { Scene, GameObjects, Math as PhaserMath } from 'phaser';
 import { GameState } from '../GameState';
-import { PARTS, getPartsForSlot, BUILD_BUDGET, SlotType, PartDef } from '../parts';
+import { PARTS, getPartsForSlot, BUILD_BUDGET, BASE_FUEL, SlotType, PartDef } from '../parts';
 import { StarfieldBackground } from '../ui/StarfieldBackground';
 import { CartoonButton } from '../ui/CartoonButton';
 import { warpIn, warpOut, rocketLiftoff } from '../ui/SceneTransition';
 import { title, panel } from '../ui/typography';
 import { burst } from '../ui/Confetti';
-import { COLORS, HEX } from '../ui/colors';
+import { HEX } from '../ui/colors';
 
 interface SlotUI {
     key: 'nose' | 'body' | 'engine' | 'leftModule' | 'rightModule';
@@ -19,19 +19,20 @@ interface SlotUI {
 }
 
 const SLOTS: SlotUI[] = [
-    { key: 'nose', label: 'NOSE', slotType: 'nose', x: 360, y: 300, w: 96, h: 72 },
-    { key: 'body', label: 'BODY', slotType: 'body', x: 360, y: 430, w: 120, h: 120 },
-    { key: 'leftModule', label: 'LEFT', slotType: 'module', x: 220, y: 430, w: 84, h: 84 },
-    { key: 'rightModule', label: 'RIGHT', slotType: 'module', x: 500, y: 430, w: 84, h: 84 },
-    { key: 'engine', label: 'ENGINE', slotType: 'engine', x: 360, y: 590, w: 120, h: 96 },
+    { key: 'nose', label: 'NOSE', slotType: 'nose', x: 360, y: 550, w: 96, h: 72 },
+    { key: 'body', label: 'BODY', slotType: 'body', x: 360, y: 680, w: 120, h: 120 },
+    { key: 'leftModule', label: 'LEFT', slotType: 'module', x: 220, y: 680, w: 84, h: 84 },
+    { key: 'rightModule', label: 'RIGHT', slotType: 'module', x: 500, y: 680, w: 84, h: 84 },
+    { key: 'engine', label: 'ENGINE', slotType: 'engine', x: 360, y: 840, w: 120, h: 96 },
 ];
 
 export class BuildScene extends Scene {
     private budgetText!: GameObjects.Text;
     private gearsText!: GameObjects.Text;
     private slotLabels: Map<string, GameObjects.Text> = new Map();
-    private slotGraphics: Map<string, GameObjects.Graphics> = new Map();
+    private rocketContainer!: GameObjects.Container;
     private partPanel: GameObjects.Container | null = null;
+    private summaryText!: GameObjects.Text;
     private launchBtn!: CartoonButton;
     private soundtrack!: Phaser.Sound.BaseSound;
     private starfield!: StarfieldBackground;
@@ -50,14 +51,13 @@ export class BuildScene extends Scene {
         this.events.on('shutdown', () => this.soundtrack.stop());
 
         this.starfield = new StarfieldBackground(this, { density: 0.4 });
-        this.starfield.addAccent('blueprint');
 
         panel(this, 110, 50, 200, 48);
         this.budgetText = this.add.text(110, 50, '', {
             fontFamily: 'KenneyFuture, sans-serif',
             fontSize: '20px',
-            color: HEX.paper,
-            stroke: HEX.ink,
+            color: HEX.ink,
+            stroke: HEX.accentCyan,
             strokeThickness: 3,
         }).setOrigin(0.5);
 
@@ -67,23 +67,17 @@ export class BuildScene extends Scene {
         this.gearsText = this.add.text(630, 50, '', {
             fontFamily: 'KenneyFuture, sans-serif',
             fontSize: '20px',
-            color: HEX.accentWarm,
-            stroke: HEX.ink,
+            color: HEX.ink,
+            stroke: HEX.accentWarm,
             strokeThickness: 3,
         }).setOrigin(0.5);
 
         title(this, 360, 140, 'BUILD YOUR ROCKET', 36, { color: HEX.accentPink, strokeThickness: 5, rotation: -0.017 });
 
-        const lines = this.add.graphics();
-        lines.lineStyle(4, COLORS.ink, 0.5);
-        lines.lineBetween(360, 300, 360, 590);
-        lines.lineBetween(360, 430, 220, 430);
-        lines.lineBetween(360, 430, 500, 430);
+        this.rocketContainer = this.add.container(0, 0);
+        this.rocketContainer.add(this.add.image(360, 695, 'rocket').setScale(1.5).setAlpha(0.9));
 
         for (const slot of SLOTS) {
-            const g = this.add.graphics();
-            this.slotGraphics.set(slot.key, g);
-
             const lbl = this.add.text(slot.x, slot.y, slot.label, {
                 fontFamily: 'KenneyFuture, sans-serif',
                 fontSize: '18px',
@@ -92,6 +86,7 @@ export class BuildScene extends Scene {
                 strokeThickness: 3,
             }).setOrigin(0.5);
             this.slotLabels.set(slot.key, lbl);
+            this.rocketContainer.add(lbl);
 
             const hit = this.add.rectangle(slot.x, slot.y, slot.w, slot.h, 0, 0)
                 .setInteractive({ useHandCursor: true });
@@ -99,8 +94,7 @@ export class BuildScene extends Scene {
                 this.playClick();
                 this.openPartPanel(slot);
             });
-            hit.on('pointerover', () => this.drawSlot(slot, true));
-            hit.on('pointerout', () => this.drawSlot(slot, false));
+            this.rocketContainer.add(hit);
 
             this.tweens.add({
                 targets: lbl,
@@ -112,13 +106,22 @@ export class BuildScene extends Scene {
             });
         }
 
-        this.launchBtn = new CartoonButton(this, 360, 820, '▲ LAUNCH', {
+        panel(this, 360, 1095, 520, 80);
+        this.summaryText = this.add.text(360, 1095, '', {
+            fontFamily: '"Trebuchet MS", sans-serif',
+            fontSize: '18px',
+            color: HEX.ink,
+            align: 'center',
+            lineSpacing: 6,
+        }).setOrigin(0.5);
+
+        this.launchBtn = new CartoonButton(this, 360, 1180, '▲ LAUNCH', {
             variant: 'secondary', width: 340, height: 96, fontSize: 36, wobble: true,
             onClick: () => { this.playClick(); this.launch(); },
         });
 
-        new CartoonButton(this, 110, 1230, '< MENU', {
-            variant: 'ghost', width: 160, height: 52, fontSize: 20,
+        new CartoonButton(this, 90, 1230, '< MENU', {
+            variant: 'ghost', width: 120, height: 40, fontSize: 15,
             onClick: () => { this.playClick(); warpOut(this, () => this.scene.start('MenuScene')); },
         });
 
@@ -126,23 +129,10 @@ export class BuildScene extends Scene {
         warpIn(this);
     }
 
-    private drawSlot(slot: SlotUI, hover: boolean) {
-        const g = this.slotGraphics.get(slot.key)!;
-        const partId = GameState.rocketConfig[slot.key];
-        const overBudget = GameState.getBudgetUsed() > BUILD_BUDGET;
-        const fill = partId ? 0x00ff88 : COLORS.accentCyan;
-        const alpha = hover ? 0.25 : 0.1;
-        g.clear();
-        g.fillStyle(overBudget ? COLORS.accentPink : fill, alpha);
-        g.fillRoundedRect(slot.x - slot.w / 2, slot.y - slot.h / 2, slot.w, slot.h, 10);
-        g.lineStyle(4, COLORS.ink, 1);
-        g.strokeRoundedRect(slot.x - slot.w / 2, slot.y - slot.h / 2, slot.w, slot.h, 10);
-    }
-
     private refreshUI() {
         const used = GameState.getBudgetUsed();
         this.budgetText.setText(`BUDGET ${used}/${BUILD_BUDGET}`);
-        this.budgetText.setColor(used > BUILD_BUDGET ? HEX.accentPink : HEX.paper);
+        this.budgetText.setColor(used > BUILD_BUDGET ? HEX.accentPink : HEX.ink);
         this.gearsText.setText(`${GameState.currency}G`);
 
         for (const slot of SLOTS) {
@@ -156,12 +146,37 @@ export class BuildScene extends Scene {
                 lbl.setText(slot.label);
                 lbl.setColor(HEX.accentCyan);
             }
-            this.drawSlot(slot, false);
         }
 
         const hasEngine = !!GameState.rocketConfig.engine;
         const overBudget = GameState.getBudgetUsed() > BUILD_BUDGET;
         this.launchBtn.setEnabled(hasEngine && !overBudget);
+        this.summaryText.setText(this.buildSummary());
+    }
+
+    private buildSummary(): string {
+        const cfg = GameState.rocketConfig;
+        if (!cfg.engine || !cfg.nose || !cfg.body) return '— select parts to see stats —';
+
+        const engine = PARTS[cfg.engine];
+        const nose = PARTS[cfg.nose];
+        const body = PARTS[cfg.body];
+        const leftMod = cfg.leftModule ? PARTS[cfg.leftModule] : null;
+        const rightMod = cfg.rightModule ? PARTS[cfg.rightModule] : null;
+
+        const thrust = engine.thrust ?? 5;
+        const burn = engine.fuelBurn ?? 1;
+        const ctrl = engine.control ?? 0;
+        const drag = nose.drag ?? 1;
+        const bonusFuel = (leftMod?.bonusFuel ?? 0) + (rightMod?.bonusFuel ?? 0);
+        const fuel = BASE_FUEL + bonusFuel;
+        const shield = (leftMod?.shieldHP ?? 0) + (rightMod?.shieldHP ?? 0);
+
+        const parts: string[] = [
+            `THRUST ${thrust}  FUEL ${fuel}  BURN ${burn}/s`,
+            `DRAG ${drag}  CTRL ${ctrl}${shield > 0 ? `  SHIELD ${shield}` : ''}`,
+        ];
+        return parts.join('\n');
     }
 
     private openPartPanel(slot: SlotUI) {
@@ -170,12 +185,26 @@ export class BuildScene extends Scene {
         const parts = getPartsForSlot(slot.slotType);
         const extraRow = slot.slotType === 'module' ? 1 : 0;
         const rows = parts.length + extraRow;
+        const panelW = 340;
         const panelH = rows * 76 + 80;
-        const panelY = 1280 - panelH / 2 - 20;
-        const container = this.add.container(360, 1280);
+        const panelX = panelW / 2;
+        const panelY = 640;
+        const container = this.add.container(-panelX, panelY);
 
-        const bg = this.add.nineslice(0, 0, 'ui_panel', 0, 640, panelH, 16, 16, 16, 16);
+        const bg = this.add.nineslice(0, 0, 'ui_panel', 0, panelW, panelH, 16, 16, 16, 16);
         container.add(bg);
+
+        const closeBtn = this.add.text(panelW / 2 - 16, -panelH / 2 + 16, '✕', {
+            fontFamily: 'KenneyFuture, sans-serif',
+            fontSize: '22px',
+            color: HEX.accentPink,
+            stroke: HEX.ink,
+            strokeThickness: 3,
+        }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+        closeBtn.on('pointerdown', () => { this.playClick(); this.closePartPanel(); });
+        closeBtn.on('pointerover', () => closeBtn.setAlpha(0.7));
+        closeBtn.on('pointerout', () => closeBtn.setAlpha(1));
+        container.add(closeBtn);
 
         const t = this.add.text(0, -panelH / 2 + 28, `SELECT ${slot.label}`, {
             fontFamily: 'KenneyFuture, sans-serif',
@@ -212,29 +241,29 @@ export class BuildScene extends Scene {
 
             const unlocked = GameState.isUnlocked(part.id);
             const equipped = GameState.rocketConfig[slot.key] === part.id;
-            const color = equipped ? '#00ff88' : unlocked ? HEX.paper : '#888';
+            const color = equipped ? '#007744' : unlocked ? HEX.ink : '#555';
 
-            const nameText = this.add.text(-260, y - 10, part.name, {
+            const nameText = this.add.text(-150, y - 10, part.name, {
                 fontFamily: 'KenneyFuture, sans-serif',
-                fontSize: '22px',
+                fontSize: '20px',
                 color,
-                stroke: HEX.ink,
+                stroke: equipped ? '#00ff88' : HEX.accentCyan,
                 strokeThickness: 2,
             });
             container.add(nameText);
 
-            const statsText = this.add.text(-260, y + 18, this.getPartStats(part), {
+            const statsText = this.add.text(-150, y + 18, this.getPartStats(part), {
                 fontFamily: '"Trebuchet MS", sans-serif',
-                fontSize: '13px',
-                color: HEX.accentLilac,
+                fontSize: '12px',
+                color: '#4a3a7a',
             });
             container.add(statsText);
 
-            const costText = this.add.text(260, y - 10, `$${part.budgetCost}`, {
+            const costText = this.add.text(150, y - 10, `$${part.budgetCost}`, {
                 fontFamily: 'KenneyFuture, sans-serif',
-                fontSize: '20px',
-                color: HEX.accentWarm,
-                stroke: HEX.ink,
+                fontSize: '18px',
+                color: HEX.ink,
+                stroke: HEX.accentWarm,
                 strokeThickness: 2,
             }).setOrigin(1, 0);
             container.add(costText);
@@ -248,17 +277,17 @@ export class BuildScene extends Scene {
                     this.refreshUI();
                 });
                 nameText.on('pointerover', () => nameText.setColor(HEX.accentCyan));
-                nameText.on('pointerout', () => nameText.setColor(equipped ? '#00ff88' : HEX.paper));
+                nameText.on('pointerout', () => nameText.setColor(equipped ? '#007744' : HEX.ink));
             } else {
-                const unlockBtn = this.add.text(260, y + 18, `UNLOCK: ${part.unlockCost}G`, {
+                const unlockBtn = this.add.text(150, y + 18, `UNLOCK: ${part.unlockCost}G`, {
                     fontFamily: '"Trebuchet MS", sans-serif',
-                    fontSize: '14px',
-                    color: GameState.currency >= (part.unlockCost ?? 0) ? HEX.accentWarm : HEX.accentPink,
+                    fontSize: '13px',
+                    color: GameState.currency >= (part.unlockCost ?? 0) ? '#7a5500' : '#aa0033',
                 }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
                 unlockBtn.on('pointerdown', () => {
                     if (GameState.unlockPart(part.id)) {
                         this.sound.play('buy', { volume: GameState.getSfxVolume() });
-                        burst(this, 360, y + panelY);
+                        burst(this, panelX, panelY + y);
                         this.closePartPanel();
                         this.openPartPanel(slot);
                     } else {
@@ -269,14 +298,14 @@ export class BuildScene extends Scene {
             }
         });
 
-        this.tweens.add({ targets: container, y: panelY, duration: 300, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: container, x: panelX, duration: 300, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: this.rocketContainer, x: 190, duration: 300, ease: 'Back.easeOut' });
         this.partPanel = container;
     }
 
     private getPartStats(part: PartDef): string {
         const stats: string[] = [`wt:${part.weight}`];
         if (part.drag !== undefined) stats.push(`drag:${part.drag}`);
-        if (part.hp !== undefined) stats.push(`hp:${part.hp}`);
         if (part.thrust !== undefined) stats.push(`thrust:${part.thrust}`);
         if (part.control !== undefined) stats.push(`ctrl:${part.control}`);
         if (part.fuelBurn !== undefined) stats.push(`burn:${part.fuelBurn}`);
@@ -290,6 +319,7 @@ export class BuildScene extends Scene {
         if (this.partPanel) {
             this.partPanel.destroy();
             this.partPanel = null;
+            this.tweens.add({ targets: this.rocketContainer, x: 0, duration: 250, ease: 'Sine.easeOut' });
         }
     }
 
@@ -298,7 +328,6 @@ export class BuildScene extends Scene {
         const overBudget = GameState.getBudgetUsed() > BUILD_BUDGET;
         if (!hasEngine || overBudget) return;
 
-        const liftoff = this.add.image(360, 430, 'rocket').setScale(1.4);
-        rocketLiftoff(this, liftoff, () => this.scene.start('FlightScene'));
+        this.scene.start('FlightScene');
     }
 }
