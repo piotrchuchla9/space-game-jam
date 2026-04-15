@@ -177,6 +177,8 @@ export class BuildScene extends Scene {
         const nose = PARTS[cfg.nose];
         const sidesMod = cfg.sides ? PARTS[cfg.sides] : null;
 
+        const body = PARTS[cfg.body];
+
         const thrust = engine.thrust ?? 5;
         const burn = engine.fuelBurn ?? 1;
         const ctrl = engine.control ?? 0;
@@ -184,10 +186,11 @@ export class BuildScene extends Scene {
         const bonusFuel = sidesMod?.bonusFuel ?? 0;
         const fuel = BASE_FUEL + bonusFuel;
         const shield = sidesMod?.shieldHP ?? 0;
+        const weight = engine.weight + nose.weight + body.weight + (sidesMod?.weight ?? 0);
 
         const parts: string[] = [
             `THRUST ${thrust}  FUEL ${fuel}  BURN ${burn}/s`,
-            `DRAG ${drag}  CTRL ${ctrl}${shield > 0 ? `  SHIELD ${shield}` : ''}`,
+            `DRAG ${drag}  CTRL ${ctrl}  WEIGHT ${weight}${shield > 0 ? `  SHIELD ${shield}` : ''}`,
         ];
         return parts.join('\n');
     }
