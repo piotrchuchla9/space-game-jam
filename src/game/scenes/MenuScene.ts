@@ -75,7 +75,15 @@ export class MenuScene extends Scene {
             },
         });
 
-        this.createVolumeControl(cx, 1020, 'MUSIC', GameState.musicVolume, GameState.musicMuted,
+        new CartoonButton(this, cx, 995, 'HOW TO PLAY', {
+            variant: 'ghost', width: 260, height: 52, fontSize: 22,
+            onClick: () => {
+                this.playClick();
+                warpOut(this, () => this.scene.start('InstructionScene'));
+            },
+        });
+
+        this.createVolumeControl(cx, 1075, 'MUSIC', GameState.musicVolume, GameState.musicMuted,
             (vol) => {
                 GameState.musicVolume = vol;
                 (this.soundtrack as unknown as { setVolume: (v: number) => void }).setVolume(GameState.getMusicVolume());
@@ -87,12 +95,12 @@ export class MenuScene extends Scene {
                 GameState.save();
             },
         );
-        this.createVolumeControl(cx, 1100, 'SFX', GameState.sfxVolume, GameState.sfxMuted,
+        this.createVolumeControl(cx, 1155, 'SFX', GameState.sfxVolume, GameState.sfxMuted,
             (vol) => { GameState.sfxVolume = vol; GameState.save(); },
             (muted) => { GameState.sfxMuted = muted; GameState.save(); },
         );
 
-        label(this, cx, 1230, 'MACHINES JAM 2026', 16, { color: HEX.accentLilac, strokeThickness: 0 });
+        label(this, cx, 1245, 'MACHINES JAM 2026', 16, { color: HEX.accentLilac, strokeThickness: 0 });
 
         warpIn(this);
     }
