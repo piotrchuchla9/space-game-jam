@@ -26,6 +26,9 @@ export class Rocket {
     // Boost state
     isBoostActive: boolean = false;
 
+    // Shield state
+    isShieldActive: boolean = false;
+
     constructor(scene: Scene, x: number, y: number) {
         this.scene = scene;
         this.config = { ...GameState.rocketConfig };
@@ -85,6 +88,13 @@ export class Rocket {
 
     getAltitude(): number {
         return Math.max(0, this.startY - this.body.position.y);
+    }
+
+    activateShield(duration: number = 3000) {
+        this.isShieldActive = true;
+        this.scene.time.delayedCall(duration, () => {
+            this.isShieldActive = false;
+        });
     }
 
     activateBoost(duration: number = 1000) {

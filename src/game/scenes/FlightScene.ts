@@ -17,6 +17,7 @@ export class FlightScene extends Scene {
   private currentZoom: number = 1.4;
   private currentFollowOffsetY: number = 150;
   private flameSprites: Phaser.GameObjects.Ellipse[] = [];
+  private shieldBubble!: Phaser.GameObjects.Graphics;
   private thrusterSound!: Phaser.Sound.BaseSound;
   private fuelAlertSound!: Phaser.Sound.BaseSound;
 
@@ -101,9 +102,14 @@ export class FlightScene extends Scene {
         if (labels.includes("rocket") && labels.includes("bird")) {
           const birdBody =
             pair.bodyA.label === "bird" ? pair.bodyA : pair.bodyB;
-          this.rocket.applyBirdHit(birdBody.velocity.x);
-          this.sound.play("birdHit", { volume: GameState.getSfxVolume() });
-          this.zoneManager.removeObstacleByBody(birdBody);
+          if (this.rocket.isShieldActive) {
+            // Shield absorbs the bird — destroy it silently
+            this.zoneManager.removeObstacleByBody(birdBody);
+          } else {
+            this.rocket.applyBirdHit(birdBody.velocity.x);
+            this.sound.play("birdHit", { volume: GameState.getSfxVolume() });
+            this.zoneManager.removeObstacleByBody(birdBody);
+          }
         }
 
         if (labels.includes("rocket") && labels.includes("ground")) {
@@ -137,6 +143,15 @@ export class FlightScene extends Scene {
           this.sound.play("gearPickup", { volume: GameState.getSfxVolume() });
           this.showBoostNotification();
         }
+
+        if (labels.includes("rocket") && labels.includes("shield")) {
+          const shieldBody =
+            pair.bodyA.label === "shield" ? pair.bodyA : pair.bodyB;
+          this.zoneManager.removeShieldByBody(shieldBody);
+          this.rocket.activateShield(3000);
+          this.sound.play("gearPickup", { volume: GameState.getSfxVolume() });
+          this.showShieldNotification();
+        }
       }
     });
 
@@ -159,6 +174,11 @@ export class FlightScene extends Scene {
       flame.setVisible(false);
       return flame;
     });
+
+    // Shield bubble visual — follows rocket when shield is active
+    this.shieldBubble = this.add.graphics();
+    this.shieldBubble.setVisible(false);
+    this.shieldBubble.setDepth(10);
 
     this.thrusterSound = this.sound.add("thrusterFire", {
       loop: true,
@@ -287,6 +307,25 @@ export class FlightScene extends Scene {
       }
     }
 
+    // Shield bubble — animated cyan ring around rocket
+    if (this.rocket.isShieldActive) {
+      this.shieldBubble.setVisible(true);
+      this.shieldBubble.setPosition(
+        this.rocket.body.position.x,
+        this.rocket.body.position.y,
+      );
+      const pulse = 0.85 + Math.sin(_time * 0.006) * 0.15;
+      this.shieldBubble.clear();
+      this.shieldBubble.lineStyle(3, 0x00ccff, 0.85 * pulse);
+      this.shieldBubble.strokeCircle(0, 0, 48 * pulse);
+      this.shieldBubble.lineStyle(1.5, 0x66eeff, 0.4 * pulse);
+      this.shieldBubble.strokeCircle(0, 0, 56 * pulse);
+      this.shieldBubble.fillStyle(0x0088cc, 0.08 * pulse);
+      this.shieldBubble.fillCircle(0, 0, 48 * pulse);
+    } else {
+      this.shieldBubble.setVisible(false);
+    }
+
     let bgColor: number;
     if (this.altitude < 8000) {
       bgColor = this.lerpColor(0x4a90d9, 0x1a3a6e, this.altitude / 8000);
@@ -313,6 +352,30 @@ export class FlightScene extends Scene {
       .text(cam.centerX, cam.centerY - 80, "BOOST!", {
         fontSize: "52px",
         color: "#ff6600",
+        fontFamily: "KenneyFuture",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
+      .setScrollFactor(0)
+      .setOrigin(0.5)
+      .setDepth(100);
+
+    this.tweens.add({
+      targets: text,
+      y: text.y - 70,
+      alpha: 0,
+      duration: 1200,
+      ease: "Power2",
+      onComplete: () => text.destroy(),
+    });
+  }
+
+  private showShieldNotification() {
+    const cam = this.cameras.main;
+    const text = this.add
+      .text(cam.centerX, cam.centerY - 80, "SHIELD!", {
+        fontSize: "52px",
+        color: "#00ccff",
         fontFamily: "KenneyFuture",
         stroke: "#000000",
         strokeThickness: 4,
@@ -371,6 +434,7 @@ export class FlightScene extends Scene {
       if (this.thrusterSound.isPlaying) this.thrusterSound.stop();
       if (this.fuelAlertSound.isPlaying) this.fuelAlertSound.stop();
       this.flameSprites.forEach((f) => f.destroy());
+      this.shieldBubble.destroy();
       this.flameSprites = [];
       this.inputManager.destroy();
       this.rocket.destroy();
