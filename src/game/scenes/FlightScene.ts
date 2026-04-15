@@ -51,6 +51,13 @@ export class FlightScene extends Scene {
 
     this.load.image("station_003", "assets/station_005.png");
 
+    for (const n of [2, 4, 5]) {
+      this.load.image(`grass${n}`, `assets/plants/grass${n}.png`);
+    }
+    for (const n of [9, 13, 15, 18]) {
+      this.load.image(`tree${n}`, `assets/plants/tree${String(n).padStart(2, "0")}.png`);
+    }
+
     for (let i = 1; i <= 9; i++) {
       this.load.image(`cloud${i}`, `assets/clouds/cloud${i}.png`);
     }
@@ -587,6 +594,56 @@ private buildSideWalls(
       .setDisplaySize(padW, 28)
       .setOrigin(0.5, 1)
       .setDepth(depth);
+
+    this.scatterGroundPlants(groundY, rx, padW);
+  }
+
+  private scatterGroundPlants(groundY: number, padX: number, padW: number) {
+    const xStart = -3000;
+    const xEnd = 3720;
+    const padLeft = padX - padW / 2 - 8;
+    const padRight = padX + padW / 2 + 8;
+
+    const treeKeys = ["tree09", "tree13", "tree15", "tree18"].filter((k) =>
+      this.textures.exists(k),
+    );
+    const grassKeys = ["grass2", "grass4", "grass5"].filter((k) =>
+      this.textures.exists(k),
+    );
+    if (grassKeys.length === 0 && treeKeys.length === 0) return;
+
+    const rand = (min: number, max: number) => min + Math.random() * (max - min);
+    const pick = (arr: string[]): string => arr[Math.floor(Math.random() * arr.length)];
+
+    if (grassKeys.length > 0) {
+      const grassStep = 18;
+      for (let gx = xStart; gx < xEnd; gx += grassStep) {
+        if (gx > padLeft && gx < padRight) continue;
+        this.add
+          .image(gx + rand(-4, 4), groundY + 2, pick(grassKeys))
+          .setOrigin(0.5, 1)
+          .setScale(rand(0.75, 1.15))
+          .setFlipX(Math.random() < 0.5)
+          .setDepth(-4);
+      }
+    }
+
+    if (treeKeys.length > 0) {
+      let tx = xStart + rand(40, 120);
+      while (tx < xEnd) {
+        if (tx > padLeft - 40 && tx < padRight + 40) {
+          tx = padRight + rand(60, 140);
+          continue;
+        }
+        this.add
+          .image(tx, groundY + 2, pick(treeKeys))
+          .setOrigin(0.5, 1)
+          .setScale(rand(0.85, 1.15))
+          .setFlipX(Math.random() < 0.5)
+          .setDepth(-3);
+        tx += rand(160, 280);
+      }
+    }
   }
 
   private lerpColor(from: number, to: number, t: number): number {
