@@ -2,12 +2,14 @@ import { Scene } from "phaser";
 import { Rocket } from "../objects/Rocket";
 import { InputManager } from "../systems/InputManager";
 import { ZoneManager } from "../systems/ZoneManager";
+import { ZoneAmbient } from "../systems/ZoneAmbient";
 import { GameState } from "../GameState";
 
 export class FlightScene extends Scene {
   private rocket!: Rocket;
   private inputManager!: InputManager;
   private zoneManager!: ZoneManager;
+  private zoneAmbient!: ZoneAmbient;
   private altitude: number = 0;
   private maxAltitude: number = 0;
   private maxSpeed: number = 0;
@@ -71,6 +73,7 @@ export class FlightScene extends Scene {
     this.rocket = new Rocket(this, 360, 1100);
     this.inputManager = new InputManager(this);
     this.zoneManager = new ZoneManager(this);
+    this.zoneAmbient = new ZoneAmbient(this);
 
     // Camera follows rocket
     const rocketGraphic = this.add
@@ -254,6 +257,12 @@ export class FlightScene extends Scene {
 
     // Zone manager update (spawning gears/obstacles)
     this.zoneManager.update(delta, this.altitude, this.rocket.body.position.x);
+    this.zoneAmbient.update(
+      delta,
+      this.altitude,
+      this.cameras.main.scrollX,
+      this.cameras.main.scrollY,
+    );
 
     // Emit HUD update
     const vel = this.rocket.body.velocity;
@@ -522,6 +531,7 @@ export class FlightScene extends Scene {
       this.inputManager.destroy();
       this.rocket.destroy();
       this.zoneManager.destroy();
+      this.zoneAmbient.destroy();
       this.scene.stop("HUDScene");
       this.scene.start("CrashScene");
     });
