@@ -23,6 +23,9 @@ export class Rocket {
     // Altitude tracking
     startY: number = 0;
 
+    // Boost state
+    isBoostActive: boolean = false;
+
     constructor(scene: Scene, x: number, y: number) {
         this.scene = scene;
         this.config = { ...GameState.rocketConfig };
@@ -84,12 +87,20 @@ export class Rocket {
         return Math.max(0, this.startY - this.body.position.y);
     }
 
+    activateBoost(duration: number = 1000) {
+        this.isBoostActive = true;
+        this.scene.time.delayedCall(duration, () => {
+            this.isBoostActive = false;
+        });
+    }
+
     applyThrust(delta: number) {
         if (this.fuel <= 0) return;
 
         const angle = this.body.angle - Math.PI / 2; // "up" direction of body
-        const forceX = Math.cos(angle) * this.thrust * 0.002;
-        const forceY = Math.sin(angle) * this.thrust * 0.002;
+        const boostMultiplier = this.isBoostActive ? 2.5 : 1;
+        const forceX = Math.cos(angle) * this.thrust * 0.002 * boostMultiplier;
+        const forceY = Math.sin(angle) * this.thrust * 0.002 * boostMultiplier;
 
         this.scene.matter.body.applyForce(this.body, this.body.position, {
             x: forceX,

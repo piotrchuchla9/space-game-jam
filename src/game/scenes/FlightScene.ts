@@ -128,6 +128,15 @@ export class FlightScene extends Scene {
           this.rocket.addFuel(this.rocket.maxFuel * 0.25);
           this.sound.play("fuelPickup", { volume: GameState.getSfxVolume() });
         }
+
+        if (labels.includes("rocket") && labels.includes("flame")) {
+          const flameBody =
+            pair.bodyA.label === "flame" ? pair.bodyA : pair.bodyB;
+          this.zoneManager.removeFlameByBody(flameBody);
+          this.rocket.activateBoost(1000);
+          this.sound.play("gearPickup", { volume: GameState.getSfxVolume() });
+          this.showBoostNotification();
+        }
       }
     });
 
@@ -296,6 +305,30 @@ export class FlightScene extends Scene {
     if (this.rocket.body.position.y > 1300 && this.maxAltitude > 50) {
       this.crash();
     }
+  }
+
+  private showBoostNotification() {
+    const cam = this.cameras.main;
+    const text = this.add
+      .text(cam.centerX, cam.centerY - 80, "BOOST!", {
+        fontSize: "52px",
+        color: "#ff6600",
+        fontFamily: "KenneyFuture",
+        stroke: "#000000",
+        strokeThickness: 4,
+      })
+      .setScrollFactor(0)
+      .setOrigin(0.5)
+      .setDepth(100);
+
+    this.tweens.add({
+      targets: text,
+      y: text.y - 70,
+      alpha: 0,
+      duration: 1200,
+      ease: "Power2",
+      onComplete: () => text.destroy(),
+    });
   }
 
   private buildLaunchPad() {
