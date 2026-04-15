@@ -162,7 +162,6 @@ export class FlightScene extends Scene {
           this.zoneManager.removeFlameByBody(flameBody);
           this.rocket.activateBoost(1000);
           this.sound.play("boost", { volume: GameState.getSfxVolume() });
-          this.showBoostNotification();
         }
 
         if (labels.includes("rocket") && labels.includes("meteor")) {
@@ -199,7 +198,6 @@ export class FlightScene extends Scene {
           this.zoneManager.removeShieldByBody(shieldBody);
           this.rocket.activateShield(3000);
           this.sound.play("shield", { volume: GameState.getSfxVolume() });
-          this.showShieldNotification();
         }
       }
     });
@@ -435,55 +433,7 @@ export class FlightScene extends Scene {
     }
   }
 
-  private showBoostNotification() {
-    const cam = this.cameras.main;
-    const text = this.add
-      .text(cam.centerX, cam.centerY - 80, "BOOST!", {
-        fontSize: "52px",
-        color: "#ff6600",
-        fontFamily: "KenneyFuture",
-        stroke: "#000000",
-        strokeThickness: 4,
-      })
-      .setScrollFactor(0)
-      .setOrigin(0.5)
-      .setDepth(100);
-
-    this.tweens.add({
-      targets: text,
-      y: text.y - 70,
-      alpha: 0,
-      duration: 1200,
-      ease: "Power2",
-      onComplete: () => text.destroy(),
-    });
-  }
-
-  private showShieldNotification() {
-    const cam = this.cameras.main;
-    const text = this.add
-      .text(cam.centerX, cam.centerY - 80, "SHIELD!", {
-        fontSize: "52px",
-        color: "#00ccff",
-        fontFamily: "KenneyFuture",
-        stroke: "#000000",
-        strokeThickness: 4,
-      })
-      .setScrollFactor(0)
-      .setOrigin(0.5)
-      .setDepth(100);
-
-    this.tweens.add({
-      targets: text,
-      y: text.y - 70,
-      alpha: 0,
-      duration: 1200,
-      ease: "Power2",
-      onComplete: () => text.destroy(),
-    });
-  }
-
-  private buildSideWalls(
+private buildSideWalls(
     left: number,
     right: number,
     top: number,
