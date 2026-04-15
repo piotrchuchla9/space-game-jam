@@ -14,6 +14,7 @@ export class FlightScene extends Scene {
   private crashed: boolean = false;
   private gearsCollected: number = 0;
   private launchTime: number = 0;
+  private timerStarted: boolean = false;
   private currentZoom: number = 1.4;
   private currentFollowOffsetY: number = 150;
   private flameSprites: Phaser.GameObjects.Ellipse[] = [];
@@ -45,7 +46,8 @@ export class FlightScene extends Scene {
 
   create() {
     this.crashed = false;
-    this.launchTime = this.time.now;
+    this.launchTime = 0;
+    this.timerStarted = false;
 
     // World bounds — wide and tall
     this.matter.world.setBounds(
@@ -163,6 +165,10 @@ export class FlightScene extends Scene {
     this.scene.stop("HUDScene");
     this.scene.launch("HUDScene");
 
+    this.events.on("selfDestruct", () => {
+      if (this.maxAltitude > 50) this.crash();
+    });
+
     // Flame visuals — 3 layered ellipses for animated fire effect
     const flameColors = [0xff4500, 0xff8c00, 0xffdd00];
     const flameSizes = [
@@ -212,6 +218,10 @@ export class FlightScene extends Scene {
     // Thrust
     this.isThrusting = inputState.thrust && this.rocket.fuel > 0;
     if (this.isThrusting) {
+      if (!this.timerStarted) {
+        this.timerStarted = true;
+        this.launchTime = this.time.now;
+      }
       this.rocket.applyThrust(delta);
     }
 
@@ -260,7 +270,7 @@ export class FlightScene extends Scene {
       zone: zoneName,
       gears: this.gearsCollected,
       speed: Math.round(speed * 10),
-      time: (this.time.now - this.launchTime) / 1000,
+      time: this.timerStarted ? (this.time.now - this.launchTime) / 1000 : 0,
     });
 
     // Update rocket graphic position (for camera)
@@ -431,7 +441,9 @@ export class FlightScene extends Scene {
 
     this.cameras.main.shake(300, 0.02);
     this.time.delayedCall(400, () => {
-      const elapsedSeconds = (this.time.now - this.launchTime) / 1000;
+      const elapsedSeconds = this.timerStarted
+        ? (this.time.now - this.launchTime) / 1000
+        : 0;
       GameState.finishRun(this.maxAltitude, this.gearsCollected, elapsedSeconds);
       if (this.thrusterSound.isPlaying) this.thrusterSound.stop();
       if (this.fuelAlertSound.isPlaying) this.fuelAlertSound.stop();

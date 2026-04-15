@@ -97,8 +97,23 @@ export class HUDScene extends Scene {
       .rectangle(549, 36, 130, 14, 0x44ff44)
       .setOrigin(0, 0.5);
 
-    // Listen for HUD updates from FlightScene
+    // Self-destruct button (bottom-right)
     const flightScene = this.scene.get("FlightScene");
+    const sdBg = this.add
+      .rectangle(640, 1230, 130, 50, 0xaa0000)
+      .setStrokeStyle(2, 0xffffff)
+      .setInteractive({ useHandCursor: true });
+    this.add
+      .text(640, 1230, "SELF\nDESTRUCT", {
+        fontSize: "14px",
+        color: "#ffffff",
+        fontFamily: FONT,
+        align: "center",
+      })
+      .setOrigin(0.5);
+    sdBg.on("pointerover", () => sdBg.setFillStyle(0xff2222));
+    sdBg.on("pointerout", () => sdBg.setFillStyle(0xaa0000));
+    sdBg.on("pointerdown", () => flightScene.events.emit("selfDestruct"));
     this.hudUpdateHandler = (data: {
       altitude: number;
       fuel: number;
