@@ -8,6 +8,10 @@ export class Preloader extends Scene {
 
     preload() {
         this.load.image('rocket', 'assets/rocket.png');
+        for (let i = 1; i <= 31; i++) {
+            const key = `rp_${String(i).padStart(3, '0')}`;
+            this.load.image(key, `assets/parts/rp_${String(i).padStart(3, '0')}.png`);
+        }
         this.load.image('gear', 'assets/gear.png');
         this.load.image('ground', 'assets/ground.png');
         this.load.image('canister', 'assets/canister.png');

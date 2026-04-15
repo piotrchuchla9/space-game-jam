@@ -35,41 +35,34 @@ export class Rocket {
         const nose = PARTS[this.config.nose];
         const body = PARTS[this.config.body];
         const engine = PARTS[this.config.engine];
-        const leftMod = this.config.leftModule ? PARTS[this.config.leftModule] : null;
-        const rightMod = this.config.rightModule ? PARTS[this.config.rightModule] : null;
+        const sidesMod = this.config.sides ? PARTS[this.config.sides] : null;
 
         this.thrust = engine.thrust ?? 5;
         this.control = engine.control ?? 0.8;
         this.fuelBurn = engine.fuelBurn ?? 1.0;
         this.dragMultiplier = nose.drag ?? 1.0;
 
-        // Module bonuses
+        // Module bonuses (sides is symmetric, applied once)
         let bonusFuel = 0;
         this.shieldHP = 0;
         this.angularDamping = 0.01; // base
         this.hasMagnet = false;
 
-        for (const mod of [leftMod, rightMod]) {
-            if (!mod) continue;
-            if (mod.bonusFuel) bonusFuel += mod.bonusFuel;
-            if (mod.shieldHP) this.shieldHP += mod.shieldHP;
-            if (mod.rotationDamping) this.angularDamping = mod.rotationDamping;
+        if (sidesMod) {
+            if (sidesMod.bonusFuel) bonusFuel += sidesMod.bonusFuel;
+            if (sidesMod.shieldHP) this.shieldHP += sidesMod.shieldHP;
+            if (sidesMod.rotationDamping) this.angularDamping = sidesMod.rotationDamping;
         }
 
         this.maxFuel = BASE_FUEL + bonusFuel;
         this.fuel = this.maxFuel;
 
-        // Calculate total weight and center of mass offset
-        const totalWeight = (nose.weight ?? 0) + (body.weight ?? 0) + (engine.weight ?? 0)
-            + (leftMod?.weight ?? 0) + (rightMod?.weight ?? 0);
+        // Weight: sides count twice (one on each side visually)
+        const sidesWeight = (sidesMod?.weight ?? 0) * 2;
+        const totalWeight = (nose.weight ?? 0) + (body.weight ?? 0) + (engine.weight ?? 0) + sidesWeight;
 
-        // Asymmetry: difference between left and right module weights
-        const leftWeight = leftMod?.weight ?? 0;
-        const rightWeight = rightMod?.weight ?? 0;
-        const asymmetry = (rightWeight - leftWeight) * 2; // offset in pixels
-
-        // Create compound body parts
-        const parts = this.scene.matter.bodies.rectangle(x + asymmetry, y, 30, 80, {
+        // Create physics body
+        const parts = this.scene.matter.bodies.rectangle(x, y, 30, 80, {
             label: 'rocket',
             frictionAir: this.angularDamping,
             // Keep mass in a range where basic engine can overcome gravity.
