@@ -63,6 +63,9 @@ export class FlightScene extends Scene {
       false,
     );
 
+    // Side walls — bouncy red/white striped barriers
+    this.buildSideWalls(-3000, 3720, -50000, 1280);
+
     // Create rocket at bottom center
     this.gearsCollected = 0;
     this.rocket = new Rocket(this, 360, 1100);
@@ -410,6 +413,33 @@ export class FlightScene extends Scene {
       ease: "Power2",
       onComplete: () => text.destroy(),
     });
+  }
+
+  private buildSideWalls(left: number, right: number, top: number, bottom: number) {
+    const thickness = 40;
+    const height = bottom - top;
+    const centerY = (top + bottom) / 2;
+    const leftX = left + thickness / 2;
+    const rightX = right - thickness / 2;
+
+    for (const x of [leftX, rightX]) {
+      this.matter.add.rectangle(x, centerY, thickness, height, {
+        isStatic: true,
+        label: "wall",
+        restitution: 1.0,
+        friction: 0,
+        frictionStatic: 0,
+      });
+    }
+
+    const g = this.add.graphics().setDepth(-4);
+    const stripeH = 80;
+    for (let y = top; y < bottom; y += stripeH) {
+      const isRed = Math.floor((y - top) / stripeH) % 2 === 0;
+      g.fillStyle(isRed ? 0xd02020 : 0xf5f5f5, 1);
+      g.fillRect(leftX - thickness / 2, y, thickness, stripeH);
+      g.fillRect(rightX - thickness / 2, y, thickness, stripeH);
+    }
   }
 
   private buildLaunchPad() {
