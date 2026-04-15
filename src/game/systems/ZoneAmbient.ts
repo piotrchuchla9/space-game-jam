@@ -1,4 +1,5 @@
 import { GameObjects, Scene, Math as PhaserMath } from 'phaser';
+import { Rocket } from '../objects/Rocket';
 
 type Zone = 'atmosphere' | 'turbulence' | 'space';
 
@@ -7,6 +8,11 @@ interface AmbientElement {
     type: string;
     driftX?: number;
     fadingOut?: boolean;
+    ring?: GameObjects.Graphics;
+    glow?: GameObjects.Graphics;
+    lifetime?: number;
+    maxLifetime?: number;
+    consumed?: boolean;
 }
 
 export class ZoneAmbient {
@@ -24,13 +30,13 @@ export class ZoneAmbient {
         this.scene = scene;
     }
 
-    update(delta: number, altitude: number, cameraX: number, cameraY: number): void {
+    update(delta: number, altitude: number, cameraX: number, cameraY: number, rocket?: Rocket | null): void {
         const newZone = this.zoneFromAltitude(altitude);
         if (newZone !== this.currentZone) {
             this.transitionTo(newZone);
         }
 
-        this.updateActive(delta, cameraX, cameraY);
+        this.updateActive(delta, cameraX, cameraY, rocket ?? null);
     }
 
     destroy(): void {
@@ -66,7 +72,7 @@ export class ZoneAmbient {
         this.currentZone = newZone;
     }
 
-    private updateActive(delta: number, cameraX: number, cameraY: number): void {
+    private updateActive(delta: number, cameraX: number, cameraY: number, rocket: Rocket | null): void {
         for (const e of this.activeElements) {
             if (e.driftX) {
                 const mover = e.obj as unknown as { x: number };
@@ -79,7 +85,7 @@ export class ZoneAmbient {
         } else if (this.currentZone === 'turbulence') {
             this.updateTurbulence(delta, cameraX, cameraY);
         } else if (this.currentZone === 'space') {
-            this.updateSpace(delta, cameraX, cameraY);
+            this.updateSpace(delta, cameraX, cameraY, rocket);
         }
     }
 
@@ -266,24 +272,42 @@ export class ZoneAmbient {
         const x = cameraX + this.screenW / 2 + side * PhaserMath.Between(150, 300);
         const y = cameraY + PhaserMath.Between(100, this.screenH - 300);
 
-        const colors = [0x8866cc, 0x66aacc, 0xcc6688, 0xaacc66];
-        const color = colors[PhaserMath.Between(0, colors.length - 1)];
+        const idx = PhaserMath.Between(0, 9);
+        const key = `planet${String(idx).padStart(2, '0')}`;
+        const size = PhaserMath.Between(110, 180);
 
-        const g = this.scene.add.graphics();
-        g.fillStyle(color, 1);
-        const r = PhaserMath.Between(45, 75);
-        g.fillCircle(0, 0, r);
-        g.lineStyle(2, 0xffffff, 0.3);
-        g.strokeCircle(0, 0, r);
-        g.setPosition(x, y);
+        const g = this.scene.add.image(x, y, key);
+        g.setDisplaySize(size, size);
         g.setAlpha(0);
         g.setDepth(this.depthBg);
 
-        this.scene.tweens.add({ targets: g, alpha: 0.45, duration: 800 });
+        this.scene.tweens.add({ targets: g, alpha: 0.4, duration: 800 });
         this.activeElements.push({ obj: g, type: 'planet' });
     }
 
-    private updateSpace(delta: number, cameraX: number, cameraY: number): void {
+    private cullOffscreenPlanets(cameraY: number): void {
+        for (let i = this.activeElements.length - 1; i >= 0; i--) {
+            const e = this.activeElements[i];
+            if (e.type !== 'planet' || e.fadingOut) continue;
+            const obj = e.obj as unknown as { y: number };
+            if (obj.y > cameraY + this.screenH + 200 || obj.y < cameraY - 400) {
+                e.fadingOut = true;
+                this.scene.tweens.add({
+                    targets: e.obj,
+                    alpha: 0,
+                    duration: 400,
+                    onComplete: () => {
+                        e.obj.destroy();
+                        const idx = this.activeElements.indexOf(e);
+                        if (idx >= 0) this.activeElements.splice(idx, 1);
+                    },
+                });
+            }
+        }
+    }
+
+    private updateSpace(delta: number, cameraX: number, cameraY: number, rocket: Rocket | null): void {
+        this.cullOffscreenPlanets(cameraY);
         const stars = this.activeElements.filter(e => e.type === 'star').length;
         if (stars === 0) {
             this.spawnSpaceStars(cameraX, cameraY);
@@ -298,9 +322,153 @@ export class ZoneAmbient {
 
         const planets = this.activeElements.filter(e => e.type === 'planet').length;
         this.spawnTimers.planet = (this.spawnTimers.planet ?? 0) + delta;
-        if (planets < 1 && this.spawnTimers.planet >= 15000) {
+        if (planets < 5 && this.spawnTimers.planet >= 1500) {
             this.spawnTimers.planet = 0;
             this.spawnPlanet(cameraX, cameraY);
         }
+
+        const holes = this.activeElements.filter(e => e.type === 'blackhole' && !e.consumed).length;
+        this.spawnTimers.blackhole = (this.spawnTimers.blackhole ?? 0) + delta;
+        if (holes < 2 && this.spawnTimers.blackhole >= PhaserMath.Between(3000, 5000)) {
+            this.spawnTimers.blackhole = 0;
+            this.spawnBlackHole(cameraX, cameraY);
+        }
+
+        this.updateBlackHoles(delta, cameraY, rocket);
+    }
+
+    private spawnBlackHole(cameraX: number, cameraY: number): void {
+        const x = cameraX + PhaserMath.Between(80, this.screenW - 80);
+        const y = cameraY + PhaserMath.Between(200, this.screenH - 300);
+
+        const container = this.scene.add.container(x, y);
+        container.setDepth(this.depthFx);
+        container.setAlpha(0);
+
+        const glow = this.scene.add.graphics();
+        glow.fillStyle(0x6a1b9a, 0.25);
+        glow.fillCircle(0, 0, 90);
+        glow.fillStyle(0x8a2be2, 0.15);
+        glow.fillCircle(0, 0, 70);
+
+        const ring = this.scene.add.graphics();
+        ring.lineStyle(6, 0x8a2be2, 0.9);
+        ring.strokeCircle(0, 0, 55);
+        ring.lineStyle(3, 0xaa66ff, 0.5);
+        ring.strokeCircle(0, 0, 70);
+        // asymmetric accent for rotation visibility
+        ring.lineStyle(4, 0xffffff, 0.35);
+        ring.beginPath();
+        ring.arc(0, 0, 55, -0.3, 0.3, false);
+        ring.strokePath();
+
+        const core = this.scene.add.graphics();
+        core.fillStyle(0x000000, 1);
+        core.fillCircle(0, 0, 35);
+        core.fillStyle(0x1a0033, 0.9);
+        core.fillCircle(0, 0, 30);
+
+        container.add([glow, ring, core]);
+
+        this.scene.tweens.add({ targets: container, alpha: 1, duration: 600 });
+        this.scene.tweens.add({
+            targets: glow,
+            alpha: { from: 1, to: 0.45 },
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+        this.scene.tweens.add({
+            targets: container,
+            scale: { from: 0.95, to: 1.05 },
+            duration: 1200,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut',
+        });
+
+        const el: AmbientElement = {
+            obj: container,
+            type: 'blackhole',
+            ring,
+            glow,
+            lifetime: 0,
+            maxLifetime: PhaserMath.Between(12000, 18000),
+        };
+        this.activeElements.push(el);
+    }
+
+    private updateBlackHoles(delta: number, cameraY: number, rocket: Rocket | null): void {
+        const radius = 320;
+        const coreDist = 40;
+        const baseForce = 0.012;
+
+        for (let i = this.activeElements.length - 1; i >= 0; i--) {
+            const e = this.activeElements[i];
+            if (e.type !== 'blackhole' || e.consumed) continue;
+
+            const container = e.obj as GameObjects.Container;
+            if (e.ring) {
+                e.ring.rotation += (0.4 * delta) / 1000;
+            }
+
+            e.lifetime = (e.lifetime ?? 0) + delta;
+
+            // cull if offscreen or expired
+            const offscreen = container.y > cameraY + this.screenH + 300 || container.y < cameraY - 500;
+            const expired = (e.maxLifetime ?? 0) > 0 && (e.lifetime ?? 0) >= (e.maxLifetime ?? 0);
+            if (offscreen || expired) {
+                this.fadeOutBlackHole(e, offscreen ? 300 : 800);
+                continue;
+            }
+
+            if (!rocket) continue;
+
+            const dx = container.x - rocket.body.position.x;
+            const dy = container.y - rocket.body.position.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < coreDist) {
+                // consumed — halve fuel, slow, remove
+                rocket.fuel = rocket.fuel * 0.5;
+                rocket.activateSlowdown(2000);
+                e.consumed = true;
+                this.fadeOutBlackHole(e, 400);
+                continue;
+            }
+
+            if (dist < radius && dist > 0.1) {
+                const falloff = 1 - dist / radius;
+                const strength = baseForce * falloff * falloff * rocket.body.mass;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                // Apply pull at rocket nose to generate torque — tilts rocket toward hole
+                const noseAngle = rocket.body.angle - Math.PI / 2;
+                const nosePoint = {
+                    x: rocket.body.position.x + Math.cos(noseAngle) * 40,
+                    y: rocket.body.position.y + Math.sin(noseAngle) * 40,
+                };
+                this.scene.matter.body.applyForce(rocket.body, nosePoint, {
+                    x: nx * strength,
+                    y: ny * strength,
+                });
+            }
+        }
+    }
+
+    private fadeOutBlackHole(e: AmbientElement, duration: number): void {
+        if (e.fadingOut) return;
+        e.fadingOut = true;
+        this.scene.tweens.add({
+            targets: e.obj,
+            alpha: 0,
+            duration,
+            onComplete: () => {
+                e.obj.destroy();
+                const idx = this.activeElements.indexOf(e);
+                if (idx >= 0) this.activeElements.splice(idx, 1);
+            },
+        });
     }
 }

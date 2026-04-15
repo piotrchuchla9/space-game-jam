@@ -307,6 +307,7 @@ export class FlightScene extends Scene {
       this.altitude,
       this.cameras.main.scrollX,
       this.cameras.main.scrollY,
+      this.rocket,
     );
 
     // Emit HUD update
