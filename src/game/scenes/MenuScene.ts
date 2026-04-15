@@ -27,16 +27,16 @@ export class MenuScene extends Scene {
 
         const cx = 360;
 
-        const rocket = this.add.image(cx, 280, 'rocket').setScale(1.2);
+        const rocket = this.add.image(cx, 170, 'rocket').setScale(0.85);
         this.tweens.add({
             targets: rocket,
-            y: 272,
+            y: 162,
             duration: 2500,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.inOut',
         });
-        this.add.particles(cx, 360, 'gear', {
+        this.add.particles(cx, 250, 'gear', {
             speed: { min: 30, max: 80 },
             lifespan: 600,
             scale: { start: 0.1, end: 0 },
@@ -45,21 +45,21 @@ export class MenuScene extends Scene {
             blendMode: 'ADD',
         }).setDepth(rocket.depth - 1);
 
-        const t = title(this, cx, 540, 'ROCKET\nBUILDER', 72, {
+        const t = title(this, cx, 430, 'ROCKET\nBUILDER', 72, {
             color: HEX.accentCyan, strokeThickness: 8, rotation: -0.03,
         });
         t.setScale(0).setAlign('center');
         this.tweens.add({ targets: t, scale: 1, duration: 500, ease: 'Back.easeOut' });
 
-        panel(this, cx, 670, 300, 56);
-        const hs = label(this, cx, 670, `★ HIGHSCORE: ${GameState.highscore}`, 22, {
+        panel(this, cx, 560, 300, 56);
+        const hs = label(this, cx, 560, `★ HIGHSCORE: ${GameState.highscore}`, 22, {
             color: HEX.accentWarm, bold: true, strokeThickness: 3,
         });
         if (GameState.highscore > 0) {
             this.tweens.add({ targets: hs, scale: 1.08, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
         }
 
-        new CartoonButton(this, cx, 810, 'PLAY', {
+        new CartoonButton(this, cx, 700, 'PLAY', {
             variant: 'primary', width: 300, height: 88, fontSize: 40, wobble: true,
             onClick: () => {
                 this.playClick();
@@ -67,7 +67,7 @@ export class MenuScene extends Scene {
             },
         });
 
-        new CartoonButton(this, cx, 920, 'ACHIEVEMENTS', {
+        new CartoonButton(this, cx, 810, 'ACHIEVEMENTS', {
             variant: 'secondary', width: 260, height: 64, fontSize: 22,
             onClick: () => {
                 this.playClick();
@@ -75,7 +75,7 @@ export class MenuScene extends Scene {
             },
         });
 
-        new CartoonButton(this, cx, 995, 'HOW TO PLAY', {
+        new CartoonButton(this, cx, 885, 'HOW TO PLAY', {
             variant: 'ghost', width: 260, height: 52, fontSize: 22,
             onClick: () => {
                 this.playClick();
@@ -83,7 +83,15 @@ export class MenuScene extends Scene {
             },
         });
 
-        this.createVolumeControl(cx, 1075, 'MUSIC', GameState.musicVolume, GameState.musicMuted,
+        new CartoonButton(this, cx, 950, 'AUTHORS', {
+            variant: 'ghost', width: 260, height: 52, fontSize: 22,
+            onClick: () => {
+                this.playClick();
+                warpOut(this, () => this.scene.start('AuthorsScene'));
+            },
+        });
+
+        this.createVolumeControl(cx, 1035, 'MUSIC', GameState.musicVolume, GameState.musicMuted,
             (vol) => {
                 GameState.musicVolume = vol;
                 (this.soundtrack as unknown as { setVolume: (v: number) => void }).setVolume(GameState.getMusicVolume());
@@ -95,12 +103,12 @@ export class MenuScene extends Scene {
                 GameState.save();
             },
         );
-        this.createVolumeControl(cx, 1155, 'SFX', GameState.sfxVolume, GameState.sfxMuted,
+        this.createVolumeControl(cx, 1115, 'SFX', GameState.sfxVolume, GameState.sfxMuted,
             (vol) => { GameState.sfxVolume = vol; GameState.save(); },
             (muted) => { GameState.sfxMuted = muted; GameState.save(); },
         );
 
-        label(this, cx, 1245, 'MACHINES JAM 2026', 16, { color: HEX.accentLilac, strokeThickness: 0 });
+        label(this, cx, 1200, 'GAMEDEV.JS JAM 2026 - MACHINES', 16, { color: HEX.accentLilac, strokeThickness: 0 });
 
         warpIn(this);
     }

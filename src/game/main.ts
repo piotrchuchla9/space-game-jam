@@ -7,6 +7,7 @@ import { HUDScene } from "./scenes/HUDScene";
 import { CrashScene } from "./scenes/CrashScene";
 import { AchievementsScene } from "./scenes/AchievementsScene";
 import { InstructionScene } from "./scenes/InstructionScene";
+import { AuthorsScene } from "./scenes/AuthorsScene";
 import { GameState } from "./GameState";
 
 const config: Types.Core.GameConfig = {
@@ -29,7 +30,7 @@ const config: Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [Preloader, MenuScene, BuildScene, FlightScene, HUDScene, CrashScene, AchievementsScene, InstructionScene],
+  scene: [Preloader, MenuScene, BuildScene, FlightScene, HUDScene, CrashScene, AchievementsScene, InstructionScene, AuthorsScene],
 };
 
 const StartGame = (parent: string) => {
