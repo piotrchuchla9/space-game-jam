@@ -35,6 +35,8 @@ export class Preloader extends Scene {
         this.load.audio('gear_sfx', 'assets/gear.mp3');
         this.load.audio('explosion', 'assets/explosionCrunch.ogg');
         this.load.audio('thruster', 'assets/thrusterFire.ogg');
+        this.load.audio('blackHoleForce', 'assets/blackHoleForce.mp3');
+        this.load.audio('blackHoleHit', 'assets/blackHoleHit.mp3');
     }
 
     create() {

@@ -1,5 +1,6 @@
 import { GameObjects, Scene, Math as PhaserMath } from 'phaser';
 import { Rocket } from '../objects/Rocket';
+import { GameState } from '../GameState';
 
 type Zone = 'atmosphere' | 'turbulence' | 'space';
 
@@ -13,6 +14,7 @@ interface AmbientElement {
     lifetime?: number;
     maxLifetime?: number;
     consumed?: boolean;
+    forceSound?: Phaser.Sound.BaseSound;
 }
 
 export class ZoneAmbient {
@@ -41,6 +43,10 @@ export class ZoneAmbient {
 
     destroy(): void {
         for (const e of [...this.activeElements, ...this.fadingOutElements]) {
+            if (e.forceSound) {
+                if (e.forceSound.isPlaying) e.forceSound.stop();
+                e.forceSound.destroy();
+            }
             e.obj.destroy();
         }
         this.activeElements = [];
@@ -388,6 +394,8 @@ export class ZoneAmbient {
             ease: 'Sine.easeInOut',
         });
 
+        const forceSound = this.scene.sound.add('blackHoleForce', { loop: true, volume: 0 });
+
         const el: AmbientElement = {
             obj: container,
             type: 'blackhole',
@@ -395,6 +403,7 @@ export class ZoneAmbient {
             glow,
             lifetime: 0,
             maxLifetime: PhaserMath.Between(12000, 18000),
+            forceSound,
         };
         this.activeElements.push(el);
     }
@@ -434,6 +443,8 @@ export class ZoneAmbient {
                 rocket.fuel = rocket.fuel * 0.5;
                 rocket.activateSlowdown(2000);
                 e.consumed = true;
+                if (e.forceSound && e.forceSound.isPlaying) e.forceSound.stop();
+                this.scene.sound.play('blackHoleHit', { volume: 0.7 * GameState.getSfxVolume() });
                 this.fadeOutBlackHole(e, 400);
                 continue;
             }
@@ -453,6 +464,15 @@ export class ZoneAmbient {
                     x: nx * strength,
                     y: ny * strength,
                 });
+
+                if (e.forceSound) {
+                    if (!e.forceSound.isPlaying) e.forceSound.play();
+                    const targetVol = (0.15 + falloff * 0.55) * GameState.getSfxVolume();
+                    (e.forceSound as Phaser.Sound.WebAudioSound).volume = targetVol;
+                }
+            } else if (e.forceSound && e.forceSound.isPlaying) {
+                (e.forceSound as Phaser.Sound.WebAudioSound).volume = 0;
+                e.forceSound.stop();
             }
         }
     }
@@ -460,11 +480,13 @@ export class ZoneAmbient {
     private fadeOutBlackHole(e: AmbientElement, duration: number): void {
         if (e.fadingOut) return;
         e.fadingOut = true;
+        if (e.forceSound && e.forceSound.isPlaying) e.forceSound.stop();
         this.scene.tweens.add({
             targets: e.obj,
             alpha: 0,
             duration,
             onComplete: () => {
+                if (e.forceSound) e.forceSound.destroy();
                 e.obj.destroy();
                 const idx = this.activeElements.indexOf(e);
                 if (idx >= 0) this.activeElements.splice(idx, 1);
