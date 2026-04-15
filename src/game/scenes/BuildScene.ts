@@ -1,4 +1,4 @@
-import { Scene, GameObjects, Math as PhaserMath } from 'phaser';
+import { Scene, GameObjects } from 'phaser';
 import { GameState } from '../GameState';
 import { PARTS, getPartsForSlot, BUILD_BUDGET, BASE_FUEL, SlotType, PartDef } from '../parts';
 import { StarfieldBackground } from '../ui/StarfieldBackground';
@@ -9,7 +9,7 @@ import { burst } from '../ui/Confetti';
 import { HEX } from '../ui/colors';
 
 interface SlotUI {
-    key: 'nose' | 'body' | 'engine' | 'leftModule' | 'rightModule';
+    key: 'nose' | 'body' | 'engine' | 'sides';
     label: string;
     slotType: SlotType;
     x: number;
@@ -19,23 +19,23 @@ interface SlotUI {
 }
 
 const SLOTS: SlotUI[] = [
-    { key: 'nose', label: 'NOSE', slotType: 'nose', x: 360, y: 550, w: 96, h: 72 },
-    { key: 'body', label: 'BODY', slotType: 'body', x: 360, y: 680, w: 120, h: 120 },
-    { key: 'leftModule', label: 'LEFT', slotType: 'module', x: 220, y: 680, w: 84, h: 84 },
-    { key: 'rightModule', label: 'RIGHT', slotType: 'module', x: 500, y: 680, w: 84, h: 84 },
-    { key: 'engine', label: 'ENGINE', slotType: 'engine', x: 360, y: 840, w: 120, h: 96 },
+    { key: 'nose',   label: 'NOSE',   slotType: 'nose',   x: 360, y: 545, w: 104, h: 80  },
+    { key: 'body',   label: 'BODY',   slotType: 'body',   x: 360, y: 690, w: 110, h: 100 },
+    { key: 'sides',  label: 'SIDES',  slotType: 'sides',  x: 248, y: 680, w: 80,  h: 140 },
+    { key: 'engine', label: 'ENGINE', slotType: 'engine', x: 360, y: 840, w: 110, h: 70  },
 ];
 
 export class BuildScene extends Scene {
     private budgetText!: GameObjects.Text;
     private gearsText!: GameObjects.Text;
-    private slotLabels: Map<string, GameObjects.Text> = new Map();
     private rocketContainer!: GameObjects.Container;
     private partPanel: GameObjects.Container | null = null;
     private summaryText!: GameObjects.Text;
     private launchBtn!: CartoonButton;
     private soundtrack!: Phaser.Sound.BaseSound;
     private starfield!: StarfieldBackground;
+    private partImages: Map<string, GameObjects.Image> = new Map();
+    private sidesImgRight!: GameObjects.Image;
 
     constructor() {
         super('BuildScene');
@@ -75,19 +75,32 @@ export class BuildScene extends Scene {
         title(this, 360, 140, 'BUILD YOUR ROCKET', 36, { color: HEX.accentPink, strokeThickness: 5, rotation: -0.017 });
 
         this.rocketContainer = this.add.container(0, 0);
-        this.rocketContainer.add(this.add.image(360, 695, 'rocket').setScale(1.5).setAlpha(0.9));
+
+        // Individual part preview images (dim until a part is selected)
+        const noseImg   = this.add.image(360, 540, 'rp_001').setScale(1.5).setAlpha(0.2);
+        const bodyImg   = this.add.image(360, 690, 'rp_009').setScale(1.5).setAlpha(0.2);
+        const engineImg = this.add.image(360, 840, 'rp_003').setScale(1.5).setAlpha(0.2);
+        const sidesImgL = this.add.image(248, 670, 'rp_024').setScale(1.0).setAlpha(0.2).setFlipX(true);
+        const sidesImgR = this.add.image(472, 670, 'rp_024').setScale(1.0).setAlpha(0.2);
+
+        this.partImages.set('nose', noseImg);
+        this.partImages.set('body', bodyImg);
+        this.partImages.set('engine', engineImg);
+        this.partImages.set('sides', sidesImgL);
+        this.sidesImgRight = sidesImgR;
+
+        this.rocketContainer.add([noseImg, bodyImg, engineImg, sidesImgL, sidesImgR]);
+
+        // Extra hit area for right side (mirrors the left sides slot)
+        const rightSideHit = this.add.rectangle(472, 680, 80, 140, 0, 0)
+            .setInteractive({ useHandCursor: true });
+        rightSideHit.on('pointerdown', () => {
+            this.playClick();
+            this.openPartPanel(SLOTS.find(s => s.key === 'sides')!);
+        });
+        this.rocketContainer.add(rightSideHit);
 
         for (const slot of SLOTS) {
-            const lbl = this.add.text(slot.x, slot.y, slot.label, {
-                fontFamily: 'KenneyFuture, sans-serif',
-                fontSize: '18px',
-                color: HEX.accentCyan,
-                stroke: HEX.ink,
-                strokeThickness: 3,
-            }).setOrigin(0.5);
-            this.slotLabels.set(slot.key, lbl);
-            this.rocketContainer.add(lbl);
-
             const hit = this.add.rectangle(slot.x, slot.y, slot.w, slot.h, 0, 0)
                 .setInteractive({ useHandCursor: true });
             hit.on('pointerdown', () => {
@@ -95,15 +108,6 @@ export class BuildScene extends Scene {
                 this.openPartPanel(slot);
             });
             this.rocketContainer.add(hit);
-
-            this.tweens.add({
-                targets: lbl,
-                angle: PhaserMath.Between(-1, 1),
-                duration: 4000 + Math.random() * 2000,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.inOut',
-            });
         }
 
         panel(this, 360, 1095, 520, 80);
@@ -135,23 +139,34 @@ export class BuildScene extends Scene {
         this.budgetText.setColor(used > BUILD_BUDGET ? HEX.accentPink : HEX.ink);
         this.gearsText.setText(`${GameState.currency}G`);
 
-        for (const slot of SLOTS) {
-            const partId = GameState.rocketConfig[slot.key];
-            const lbl = this.slotLabels.get(slot.key)!;
-            if (partId) {
-                const part = PARTS[partId];
-                lbl.setText(part.name);
-                lbl.setColor(HEX.paper);
-            } else {
-                lbl.setText(slot.label);
-                lbl.setColor(HEX.accentCyan);
-            }
-        }
-
         const hasEngine = !!GameState.rocketConfig.engine;
         const overBudget = GameState.getBudgetUsed() > BUILD_BUDGET;
         this.launchBtn.setEnabled(hasEngine && !overBudget);
         this.summaryText.setText(this.buildSummary());
+        this.updatePartImages();
+    }
+
+    private updatePartImages() {
+        const cfg = GameState.rocketConfig;
+
+        for (const [slotKey, img] of this.partImages) {
+            const partId = (cfg as Record<string, string | null>)[slotKey];
+            if (partId && PARTS[partId]?.asset) {
+                img.setTexture(PARTS[partId].asset!);
+                img.setAlpha(1.0);
+            } else {
+                img.setAlpha(0.2);
+            }
+        }
+
+        // Sync right sides image
+        const sidesPart = cfg.sides ? PARTS[cfg.sides] : null;
+        if (sidesPart?.asset) {
+            this.sidesImgRight.setTexture(sidesPart.asset);
+            this.sidesImgRight.setAlpha(1.0);
+        } else {
+            this.sidesImgRight.setAlpha(0.2);
+        }
     }
 
     private buildSummary(): string {
@@ -160,21 +175,22 @@ export class BuildScene extends Scene {
 
         const engine = PARTS[cfg.engine];
         const nose = PARTS[cfg.nose];
+        const sidesMod = cfg.sides ? PARTS[cfg.sides] : null;
+
         const body = PARTS[cfg.body];
-        const leftMod = cfg.leftModule ? PARTS[cfg.leftModule] : null;
-        const rightMod = cfg.rightModule ? PARTS[cfg.rightModule] : null;
 
         const thrust = engine.thrust ?? 5;
         const burn = engine.fuelBurn ?? 1;
         const ctrl = engine.control ?? 0;
         const drag = nose.drag ?? 1;
-        const bonusFuel = (leftMod?.bonusFuel ?? 0) + (rightMod?.bonusFuel ?? 0);
+        const bonusFuel = sidesMod?.bonusFuel ?? 0;
         const fuel = BASE_FUEL + bonusFuel;
-        const shield = (leftMod?.shieldHP ?? 0) + (rightMod?.shieldHP ?? 0);
+        const shield = sidesMod?.shieldHP ?? 0;
+        const weight = engine.weight + nose.weight + body.weight + (sidesMod?.weight ?? 0);
 
         const parts: string[] = [
             `THRUST ${thrust}  FUEL ${fuel}  BURN ${burn}/s`,
-            `DRAG ${drag}  CTRL ${ctrl}${shield > 0 ? `  SHIELD ${shield}` : ''}`,
+            `DRAG ${drag}  CTRL ${ctrl}  WEIGHT ${weight}${shield > 0 ? `  SHIELD ${shield}` : ''}`,
         ];
         return parts.join('\n');
     }
@@ -183,7 +199,7 @@ export class BuildScene extends Scene {
         this.closePartPanel();
 
         const parts = getPartsForSlot(slot.slotType);
-        const extraRow = slot.slotType === 'module' ? 1 : 0;
+        const extraRow = slot.slotType === 'sides' ? 1 : 0;
         const rows = parts.length + extraRow;
         const panelW = 340;
         const panelH = rows * 76 + 80;
@@ -217,7 +233,7 @@ export class BuildScene extends Scene {
 
         let cursorY = -panelH / 2 + 70;
 
-        if (slot.slotType === 'module') {
+        if (slot.slotType === 'sides') {
             const emptyBtn = this.add.text(0, cursorY + 28, '[ EMPTY ]', {
                 fontFamily: 'KenneyFuture, sans-serif',
                 fontSize: '20px',
@@ -301,6 +317,7 @@ export class BuildScene extends Scene {
         this.tweens.add({ targets: container, x: panelX, duration: 300, ease: 'Back.easeOut' });
         this.tweens.add({ targets: this.rocketContainer, x: 190, duration: 300, ease: 'Back.easeOut' });
         this.partPanel = container;
+        this.highlightSlot(slot.key);
     }
 
     private getPartStats(part: PartDef): string {
@@ -315,11 +332,25 @@ export class BuildScene extends Scene {
         return stats.join(' | ');
     }
 
+    private highlightSlot(key: string | null) {
+        for (const img of this.partImages.values()) {
+            img.clearTint();
+        }
+        this.sidesImgRight.clearTint();
+
+        if (!key) return;
+
+        const img = this.partImages.get(key);
+        if (img) img.setTint(0x88eeff);
+        if (key === 'sides') this.sidesImgRight.setTint(0x88eeff);
+    }
+
     private closePartPanel() {
         if (this.partPanel) {
             this.partPanel.destroy();
             this.partPanel = null;
             this.tweens.add({ targets: this.rocketContainer, x: 0, duration: 250, ease: 'Sine.easeOut' });
+            this.highlightSlot(null);
         }
     }
 

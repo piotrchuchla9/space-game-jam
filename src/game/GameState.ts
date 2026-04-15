@@ -7,8 +7,7 @@ export interface RocketConfig {
     nose: string;
     body: string;
     engine: string;
-    leftModule: string | null;
-    rightModule: string | null;
+    sides: string | null;
 }
 
 export interface LastRun {
@@ -51,11 +50,10 @@ class GameStateClass {
     }
 
     rocketConfig: RocketConfig = {
-        nose: 'standardCone',
-        body: 'lightFrame',
-        engine: 'basicEngine',
-        leftModule: null,
-        rightModule: null,
+        nose: 'nose_1',
+        body: 'body_9',
+        engine: 'eng_3',
+        sides: null,
     };
 
     lastRun: LastRun = {
@@ -100,7 +98,7 @@ class GameStateClass {
 
     getBudgetUsed(): number {
         let total = 0;
-        const slots = ['nose', 'body', 'engine', 'leftModule', 'rightModule'] as const;
+        const slots = ['nose', 'body', 'engine', 'sides'] as const;
         for (const slot of slots) {
             const partId = this.rocketConfig[slot];
             if (partId && PARTS[partId]) {

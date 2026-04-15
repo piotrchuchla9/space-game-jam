@@ -26,11 +26,21 @@ const config: Types.Core.GameConfig = {
   physics: {
     default: "matter",
     matter: {
-      gravity: { x: 0, y: 0.3 },
+      gravity: { x: 0, y: 1 },
       debug: false,
     },
   },
-  scene: [Preloader, MenuScene, BuildScene, FlightScene, HUDScene, CrashScene, AchievementsScene, InstructionScene, AuthorsScene],
+  scene: [
+    Preloader,
+    MenuScene,
+    BuildScene,
+    FlightScene,
+    HUDScene,
+    CrashScene,
+    AchievementsScene,
+    InstructionScene,
+    AuthorsScene,
+  ],
 };
 
 const StartGame = (parent: string) => {
