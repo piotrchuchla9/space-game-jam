@@ -16,6 +16,7 @@ export interface LastRun {
     gears: number;
     score: number;
     time: number;
+    maxSpeed: number;
 }
 
 interface SaveData {
@@ -62,6 +63,7 @@ class GameStateClass {
         gears: 0,
         score: 0,
         time: 0,
+        maxSpeed: 0,
     };
 
     constructor() {
@@ -108,15 +110,15 @@ class GameStateClass {
         return total;
     }
 
-    finishRun(altitude: number, gears: number, time: number = 0) {
+    finishRun(altitude: number, gears: number, time: number = 0, maxSpeed: number = 0) {
         const score = Math.floor(altitude) + gears * 10;
-        this.lastRun = { altitude: Math.floor(altitude), gears, score, time };
+        this.lastRun = { altitude: Math.floor(altitude), gears, score, time, maxSpeed };
         this.currency += gears;
         if (score > this.highscore) {
             this.highscore = score;
         }
         this.save();
-        this.submitToLeaderboard(Math.floor(altitude), gears);
+        this.submitToLeaderboard(Math.floor(altitude), gears, maxSpeed);
 
         const newlyUnlocked = checkAchievements(
             Math.floor(altitude),
@@ -131,7 +133,7 @@ class GameStateClass {
         }
     }
 
-    private async submitToLeaderboard(altitude: number, gears: number) {
+    private async submitToLeaderboard(altitude: number, gears: number, maxSpeed: number) {
         if (typeof WavedashJS === 'undefined' || !this.wavedashReady) return;
         try {
             const altResp = await WavedashJS.getOrCreateLeaderboard('max-altitude', 1, 0);
@@ -144,6 +146,12 @@ class GameStateClass {
             await WavedashJS.uploadLeaderboardScore(gearsResp.data.id, gears, true);
         } catch (e) {
             console.warn('Wavedash gears leaderboard submit failed:', e);
+        }
+        try {
+            const speedResp = await WavedashJS.getOrCreateLeaderboard('max-speed', 1, 0);
+            await WavedashJS.uploadLeaderboardScore(speedResp.data.id, maxSpeed, true);
+        } catch (e) {
+            console.warn('Wavedash speed leaderboard submit failed:', e);
         }
     }
 
