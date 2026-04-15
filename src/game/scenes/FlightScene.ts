@@ -63,6 +63,9 @@ export class FlightScene extends Scene {
       false,
     );
 
+    // Side walls — bouncy red/white striped barriers
+    this.buildSideWalls(-3000, 3720, -50000, 1280);
+
     // Create rocket at bottom center
     this.gearsCollected = 0;
     this.rocket = new Rocket(this, 360, 1100);
@@ -410,6 +413,53 @@ export class FlightScene extends Scene {
       ease: "Power2",
       onComplete: () => text.destroy(),
     });
+  }
+
+  private buildSideWalls(left: number, right: number, top: number, bottom: number) {
+    const thickness = 40;
+    const height = bottom - top;
+    const centerY = (top + bottom) / 2;
+    const leftX = left + thickness / 2;
+    const rightX = right - thickness / 2;
+
+    for (const x of [leftX, rightX]) {
+      this.matter.add.rectangle(x, centerY, thickness, height, {
+        isStatic: true,
+        label: "wall",
+        restitution: 1.0,
+        friction: 0,
+        frictionStatic: 0,
+      });
+    }
+
+    const g = this.add.graphics().setDepth(-4);
+    const stripeW = 40; // stripe thickness measured along the wall
+    const angle = Math.PI / 6; // 30 degrees
+    const tan = Math.tan(angle);
+    // Vertical period along the wall between stripe starts (perpendicular spacing / cos)
+    const period = stripeW / Math.cos(angle);
+    // Horizontal shear caused by the slope across the wall thickness
+    const shear = thickness * tan;
+
+    for (const wallX of [leftX, rightX]) {
+      const wx = wallX - thickness / 2;
+      // Start above `top` so slanted stripes fully cover the wall
+      const startY = top - shear - period;
+      const endY = bottom + period;
+      let i = 0;
+      for (let y = startY; y < endY; y += period) {
+        const isRed = i % 2 === 0;
+        g.fillStyle(isRed ? 0xd02020 : 0xf5f5f5, 1);
+        g.beginPath();
+        g.moveTo(wx, y);
+        g.lineTo(wx + thickness, y + shear);
+        g.lineTo(wx + thickness, y + shear + period);
+        g.lineTo(wx, y + period);
+        g.closePath();
+        g.fillPath();
+        i++;
+      }
+    }
   }
 
   private buildLaunchPad() {
