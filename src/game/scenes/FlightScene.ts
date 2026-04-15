@@ -10,6 +10,7 @@ export class FlightScene extends Scene {
   private zoneManager!: ZoneManager;
   private altitude: number = 0;
   private maxAltitude: number = 0;
+  private maxSpeed: number = 0;
   private isThrusting: boolean = false;
   private crashed: boolean = false;
   private gearsCollected: number = 0;
@@ -160,6 +161,7 @@ export class FlightScene extends Scene {
     });
 
     this.maxAltitude = 0;
+    this.maxSpeed = 0;
 
     // Launch HUD (stop first to avoid stale listeners on restart)
     this.scene.stop("HUDScene");
@@ -263,13 +265,17 @@ export class FlightScene extends Scene {
     // Emit HUD update
     const vel = this.rocket.body.velocity;
     const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
+    const speedDisplay = Math.round(speed * 10);
+    if (speedDisplay > this.maxSpeed) {
+      this.maxSpeed = speedDisplay;
+    }
     this.events.emit("updateHUD", {
       altitude: Math.floor(this.altitude),
       fuel: this.rocket.fuel,
       maxFuel: this.rocket.maxFuel,
       zone: zoneName,
       gears: this.gearsCollected,
-      speed: Math.round(speed * 10),
+      speed: speedDisplay,
       time: this.timerStarted ? (this.time.now - this.launchTime) / 1000 : 0,
     });
 
@@ -444,7 +450,7 @@ export class FlightScene extends Scene {
       const elapsedSeconds = this.timerStarted
         ? (this.time.now - this.launchTime) / 1000
         : 0;
-      GameState.finishRun(this.maxAltitude, this.gearsCollected, elapsedSeconds);
+      GameState.finishRun(this.maxAltitude, this.gearsCollected, elapsedSeconds, this.maxSpeed);
       if (this.thrusterSound.isPlaying) this.thrusterSound.stop();
       if (this.fuelAlertSound.isPlaying) this.fuelAlertSound.stop();
       this.flameSprites.forEach((f) => f.destroy());
