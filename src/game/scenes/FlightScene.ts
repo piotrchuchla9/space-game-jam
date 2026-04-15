@@ -43,8 +43,16 @@ export class FlightScene extends Scene {
     this.load.audio("boost", "assets/boost.mp3");
     this.load.audio("shield", "assets/shield.mp3");
     this.load.image("canister", "assets/canister.png");
+    this.load.image("storm", "assets/storm.png");
+    this.load.audio("storm", "assets/storm.mp3");
+    this.load.image("meteor", "assets/meteor.png");
+    this.load.audio("meteor", "assets/meteor.mp3");
 
     this.load.image("station_003", "assets/station_005.png");
+
+    for (let i = 1; i <= 9; i++) {
+      this.load.image(`cloud${i}`, `assets/clouds/cloud${i}.png`);
+    }
   }
 
   create() {
@@ -153,6 +161,26 @@ export class FlightScene extends Scene {
           this.rocket.activateBoost(1000);
           this.sound.play("boost", { volume: GameState.getSfxVolume() });
           this.showBoostNotification();
+        }
+
+        if (labels.includes("rocket") && labels.includes("meteor")) {
+          const meteorBody =
+            pair.bodyA.label === "meteor" ? pair.bodyA : pair.bodyB;
+          if (this.rocket.isShieldActive) {
+            this.zoneManager.removeMeteorByBody(meteorBody);
+          } else {
+            this.rocket.applyBirdHit(meteorBody.velocity.x);
+            this.sound.play("meteor", { volume: GameState.getSfxVolume() });
+            this.zoneManager.removeMeteorByBody(meteorBody);
+          }
+        }
+
+        if (labels.includes("rocket") && labels.includes("storm")) {
+          const stormBody =
+            pair.bodyA.label === "storm" ? pair.bodyA : pair.bodyB;
+          this.zoneManager.removeStormByBody(stormBody);
+          this.rocket.activateSlowdown(2000);
+          this.sound.play("storm", { volume: GameState.getSfxVolume() });
         }
 
         if (labels.includes("rocket") && labels.includes("shield")) {

@@ -4,11 +4,14 @@ import { spawnGear } from '../objects/Gear';
 import { spawnCanister } from '../objects/Canister';
 import { spawnFlame } from '../objects/Flame';
 import { spawnShield } from '../objects/Shield';
+import { spawnStormObstacle } from '../objects/StormObstacle';
+import { spawnMeteorObstacle } from '../objects/MeteorObstacle';
 
 interface SpawnedEntity {
     graphic: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
     body: MatterJS.BodyType;
     type?: string;
+    trail?: Phaser.GameObjects.Particles.ParticleEmitter;
     birdWave?: {
         baseY: number;
         amplitude: number;
@@ -24,11 +27,15 @@ export class ZoneManager {
     private canisters: SpawnedEntity[] = [];
     private flames: SpawnedEntity[] = [];
     private shields: SpawnedEntity[] = [];
+    private storms: SpawnedEntity[] = [];
+    private meteors: SpawnedEntity[] = [];
     private spawnTimer: number = 0;
     private gearTimer: number = 0;
     private canisterTimer: number = 0;
     private flameTimer: number = 0;
     private shieldTimer: number = 0;
+    private stormTimer: number = 0;
+    private meteorTimer: number = 0;
     private elapsed: number = 0;
 
     constructor(scene: Scene) {
@@ -41,6 +48,8 @@ export class ZoneManager {
         this.canisterTimer += delta;
         this.flameTimer += delta;
         this.shieldTimer += delta;
+        this.stormTimer += delta;
+        this.meteorTimer += delta;
         this.elapsed += delta;
 
         // Spawn obstacles based on zone
@@ -84,6 +93,22 @@ export class ZoneManager {
             }
         }
 
+        // Spawn storm obstacles — turbulence zone only
+        if (altitude >= 5000 && altitude < 15000) {
+            if (this.stormTimer >= 3500) {
+                this.stormTimer = 0;
+                this.spawnStormNearRocket(altitude, rocketX);
+            }
+        }
+
+        // Spawn meteor obstacles — space zone only
+        if (altitude >= 15000) {
+            if (this.meteorTimer >= 2000) {
+                this.meteorTimer = 0;
+                this.spawnMeteorNearRocket(altitude, rocketX);
+            }
+        }
+
         // Cleanup far-away entities
         this.cleanup(rocketX, altitude);
 
@@ -119,6 +144,22 @@ export class ZoneManager {
         }
         for (const e of this.shields) {
             e.graphic.setPosition(e.body.position.x, e.body.position.y);
+        }
+        for (const e of this.storms) {
+            e.graphic.setPosition(e.body.position.x, e.body.position.y);
+        }
+        for (const e of this.meteors) {
+            e.graphic.setPosition(e.body.position.x, e.body.position.y);
+            if (e.trail) {
+                const vx = e.body.velocity.x;
+                const vy = e.body.velocity.y;
+                const mag = Math.sqrt(vx * vx + vy * vy) || 1;
+                const trailOffset = 35;
+                e.trail.setPosition(
+                    e.body.position.x - (vx / mag) * trailOffset,
+                    e.body.position.y - (vy / mag) * trailOffset,
+                );
+            }
         }
     }
 
@@ -173,6 +214,26 @@ export class ZoneManager {
 
         const entity = spawnShield(this.scene, x, y);
         this.shields.push(entity);
+    }
+
+    private spawnMeteorNearRocket(altitude: number, rocketX: number) {
+        const direction = Math.random() < 0.5 ? -1 : 1;
+        // Spawn meteor at top of rocket's viewport, offset to the opposite side of travel direction
+        const rocketY = 1100 - altitude;
+        const x = rocketX + (direction === 1 ? -400 : 400) + (Math.random() - 0.5) * 300;
+        const y = rocketY - 900 - Math.random() * 300;
+
+        const entity = spawnMeteorObstacle(this.scene, x, y, direction);
+        this.meteors.push(entity);
+    }
+
+    private spawnStormNearRocket(altitude: number, rocketX: number) {
+        const x = rocketX + (Math.random() - 0.5) * 600;
+        const rocketY = 1100 - altitude;
+        const y = rocketY - 500 - Math.random() * 600;
+
+        const entity = spawnStormObstacle(this.scene, x, y);
+        this.storms.push(entity);
     }
 
     private spawnFlameNearRocket(altitude: number, rocketX: number) {
@@ -239,6 +300,29 @@ export class ZoneManager {
             return true;
         });
 
+        this.meteors = this.meteors.filter(e => {
+            if (!e.body.id) return false;
+            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
+            if (dist > maxDist) {
+                e.trail?.destroy();
+                e.graphic.destroy();
+                this.scene.matter.world.remove(e.body);
+                return false;
+            }
+            return true;
+        });
+
+        this.storms = this.storms.filter(e => {
+            if (!e.body.id) return false;
+            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
+            if (dist > maxDist) {
+                e.graphic.destroy();
+                this.scene.matter.world.remove(e.body);
+                return false;
+            }
+            return true;
+        });
+
         this.shields = this.shields.filter(e => {
             if (!e.body.id) return false;
             const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
@@ -287,6 +371,25 @@ export class ZoneManager {
         }
     }
 
+    removeMeteorByBody(meteorBody: MatterJS.BodyType) {
+        const idx = this.meteors.findIndex(m => m.body === meteorBody || m.body.id === meteorBody.id);
+        if (idx >= 0) {
+            this.meteors[idx].trail?.destroy();
+            this.meteors[idx].graphic.destroy();
+            this.scene.matter.world.remove(this.meteors[idx].body);
+            this.meteors.splice(idx, 1);
+        }
+    }
+
+    removeStormByBody(stormBody: MatterJS.BodyType) {
+        const idx = this.storms.findIndex(s => s.body === stormBody || s.body.id === stormBody.id);
+        if (idx >= 0) {
+            this.storms[idx].graphic.destroy();
+            this.scene.matter.world.remove(this.storms[idx].body);
+            this.storms.splice(idx, 1);
+        }
+    }
+
     removeFlameByBody(flameBody: MatterJS.BodyType) {
         const idx = this.flames.findIndex(f => f.body === flameBody || f.body.id === flameBody.id);
         if (idx >= 0) {
@@ -297,7 +400,8 @@ export class ZoneManager {
     }
 
     destroy() {
-        for (const e of [...this.obstacles, ...this.gears, ...this.canisters, ...this.flames, ...this.shields]) {
+        for (const e of [...this.obstacles, ...this.gears, ...this.canisters, ...this.flames, ...this.shields, ...this.storms, ...this.meteors]) {
+            e.trail?.destroy();
             e.graphic.destroy();
         }
         this.obstacles = [];
@@ -305,5 +409,7 @@ export class ZoneManager {
         this.canisters = [];
         this.flames = [];
         this.shields = [];
+        this.storms = [];
+        this.meteors = [];
     }
 }
