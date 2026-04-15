@@ -16,6 +16,10 @@ export class Preloader extends Scene {
         this.load.image('ground', 'assets/ground.png');
         this.load.image('canister', 'assets/canister.png');
         this.load.image('bird', 'assets/bird.png');
+        for (let i = 0; i <= 9; i++) {
+            const key = `planet${String(i).padStart(2, '0')}`;
+            this.load.image(key, `assets/planets/${key}.png`);
+        }
         this.load.image('station', 'assets/station_005.png');
         this.load.image('ui_panel', 'assets/ui_panel.png');
         this.load.image('ui_slide_track', 'assets/ui_slide_track.png');
@@ -31,6 +35,8 @@ export class Preloader extends Scene {
         this.load.audio('gear_sfx', 'assets/gear.mp3');
         this.load.audio('explosion', 'assets/explosionCrunch.ogg');
         this.load.audio('thruster', 'assets/thrusterFire.ogg');
+        this.load.audio('blackHoleForce', 'assets/blackHoleForce.mp3');
+        this.load.audio('blackHoleHit', 'assets/blackHoleHit.mp3');
     }
 
     create() {
