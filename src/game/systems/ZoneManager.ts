@@ -2,9 +2,11 @@ import { Scene } from 'phaser';
 import { spawnObstacle, ObstacleType } from '../objects/Obstacle';
 import { spawnGear } from '../objects/Gear';
 import { spawnCanister } from '../objects/Canister';
+import { spawnFlame } from '../objects/Flame';
+import { spawnShield } from '../objects/Shield';
 
 interface SpawnedEntity {
-    graphic: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image;
+    graphic: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
     body: MatterJS.BodyType;
     type?: string;
     birdWave?: {
@@ -20,9 +22,13 @@ export class ZoneManager {
     private obstacles: SpawnedEntity[] = [];
     private gears: SpawnedEntity[] = [];
     private canisters: SpawnedEntity[] = [];
+    private flames: SpawnedEntity[] = [];
+    private shields: SpawnedEntity[] = [];
     private spawnTimer: number = 0;
     private gearTimer: number = 0;
     private canisterTimer: number = 0;
+    private flameTimer: number = 0;
+    private shieldTimer: number = 0;
     private elapsed: number = 0;
 
     constructor(scene: Scene) {
@@ -33,6 +39,8 @@ export class ZoneManager {
         this.spawnTimer += delta;
         this.gearTimer += delta;
         this.canisterTimer += delta;
+        this.flameTimer += delta;
+        this.shieldTimer += delta;
         this.elapsed += delta;
 
         // Spawn obstacles based on zone
@@ -56,6 +64,23 @@ export class ZoneManager {
             if (this.canisterTimer >= 5000) {
                 this.canisterTimer = 0;
                 this.spawnCanisterNearRocket(altitude, rocketX);
+            }
+        }
+
+        // Spawn flames — every ~5s, 2 at a time, only during flight
+        if (altitude > 0) {
+            if (this.flameTimer >= 5000) {
+                this.flameTimer = 0;
+                this.spawnFlameNearRocket(altitude, rocketX);
+                this.spawnFlameNearRocket(altitude, rocketX);
+            }
+        }
+
+        // Spawn shields — every ~8s, only during flight
+        if (altitude > 0) {
+            if (this.shieldTimer >= 8000) {
+                this.shieldTimer = 0;
+                this.spawnShieldNearRocket(altitude, rocketX);
             }
         }
 
@@ -87,6 +112,12 @@ export class ZoneManager {
             e.graphic.setPosition(e.body.position.x, e.body.position.y);
         }
         for (const e of this.canisters) {
+            e.graphic.setPosition(e.body.position.x, e.body.position.y);
+        }
+        for (const e of this.flames) {
+            e.graphic.setPosition(e.body.position.x, e.body.position.y);
+        }
+        for (const e of this.shields) {
             e.graphic.setPosition(e.body.position.x, e.body.position.y);
         }
     }
@@ -135,6 +166,24 @@ export class ZoneManager {
         this.canisters.push(entity);
     }
 
+    private spawnShieldNearRocket(altitude: number, rocketX: number) {
+        const x = rocketX + (Math.random() - 0.5) * 400;
+        const rocketY = 1100 - altitude;
+        const y = rocketY - 300 - Math.random() * 500;
+
+        const entity = spawnShield(this.scene, x, y);
+        this.shields.push(entity);
+    }
+
+    private spawnFlameNearRocket(altitude: number, rocketX: number) {
+        const x = rocketX + (Math.random() - 0.5) * 400;
+        const rocketY = 1100 - altitude;
+        const y = rocketY - 300 - Math.random() * 500;
+
+        const entity = spawnFlame(this.scene, x, y);
+        this.flames.push(entity);
+    }
+
     private applyTurbulence() {
         // Emit event for FlightScene to apply force to rocket
         this.scene.events.emit('turbulence', {
@@ -178,6 +227,28 @@ export class ZoneManager {
             }
             return true;
         });
+
+        this.flames = this.flames.filter(e => {
+            if (!e.body.id) return false;
+            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
+            if (dist > maxDist) {
+                e.graphic.destroy();
+                this.scene.matter.world.remove(e.body);
+                return false;
+            }
+            return true;
+        });
+
+        this.shields = this.shields.filter(e => {
+            if (!e.body.id) return false;
+            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
+            if (dist > maxDist) {
+                e.graphic.destroy();
+                this.scene.matter.world.remove(e.body);
+                return false;
+            }
+            return true;
+        });
     }
 
     removeObstacleByBody(obstacleBody: MatterJS.BodyType) {
@@ -207,12 +278,32 @@ export class ZoneManager {
         }
     }
 
+    removeShieldByBody(shieldBody: MatterJS.BodyType) {
+        const idx = this.shields.findIndex(s => s.body === shieldBody || s.body.id === shieldBody.id);
+        if (idx >= 0) {
+            this.shields[idx].graphic.destroy();
+            this.scene.matter.world.remove(this.shields[idx].body);
+            this.shields.splice(idx, 1);
+        }
+    }
+
+    removeFlameByBody(flameBody: MatterJS.BodyType) {
+        const idx = this.flames.findIndex(f => f.body === flameBody || f.body.id === flameBody.id);
+        if (idx >= 0) {
+            this.flames[idx].graphic.destroy();
+            this.scene.matter.world.remove(this.flames[idx].body);
+            this.flames.splice(idx, 1);
+        }
+    }
+
     destroy() {
-        for (const e of [...this.obstacles, ...this.gears, ...this.canisters]) {
+        for (const e of [...this.obstacles, ...this.gears, ...this.canisters, ...this.flames, ...this.shields]) {
             e.graphic.destroy();
         }
         this.obstacles = [];
         this.gears = [];
         this.canisters = [];
+        this.flames = [];
+        this.shields = [];
     }
 }
