@@ -252,16 +252,6 @@ export class FlightScene extends Scene {
       this.maxAltitude = this.altitude;
     }
 
-    // Camera zoom + offset: zoomed in before launch, zoom out after
-    const targetZoom = this.altitude > 0 ? 0.8 : 1.4;
-    const targetOffsetY = this.altitude > 0 ? 500 : 150;
-    const lerpFactor = Math.min(1, delta * 0.002);
-    this.currentZoom += (targetZoom - this.currentZoom) * lerpFactor;
-    this.currentFollowOffsetY +=
-      (targetOffsetY - this.currentFollowOffsetY) * lerpFactor;
-    this.cameras.main.setZoom(this.currentZoom);
-    this.cameras.main.setFollowOffset(0, this.currentFollowOffsetY);
-
     // Zone manager update (spawning gears/obstacles)
     this.zoneManager.update(delta, this.altitude, this.rocket.body.position.x);
 
@@ -269,6 +259,29 @@ export class FlightScene extends Scene {
     const vel = this.rocket.body.velocity;
     const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
     const speedDisplay = Math.round(speed * 10);
+
+    // Camera zoom + offset based on speed — offset scales with zoom so rocket stays on-screen
+    let targetZoom: number;
+    let targetOffsetY: number;
+    if (speedDisplay <= 0) {
+      targetZoom = 1.8;
+      targetOffsetY = 150;
+    } else if (speedDisplay <= 40) {
+      targetZoom = 1.3;
+      targetOffsetY = 250;
+    } else if (speedDisplay <= 80) {
+      targetZoom = 1.0;
+      targetOffsetY = 370;
+    } else {
+      targetZoom = 0.8;
+      targetOffsetY = 500;
+    }
+    const lerpFactor = Math.min(1, delta * 0.002);
+    this.currentZoom += (targetZoom - this.currentZoom) * lerpFactor;
+    this.currentFollowOffsetY +=
+      (targetOffsetY - this.currentFollowOffsetY) * lerpFactor;
+    this.cameras.main.setZoom(this.currentZoom);
+    this.cameras.main.setFollowOffset(0, this.currentFollowOffsetY);
     if (speedDisplay > this.maxSpeed) {
       this.maxSpeed = speedDisplay;
     }
