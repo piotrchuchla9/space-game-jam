@@ -181,8 +181,16 @@ export class FlightScene extends Scene {
           const stormBody =
             pair.bodyA.label === "storm" ? pair.bodyA : pair.bodyB;
           this.zoneManager.removeStormByBody(stormBody);
-          this.rocket.activateSlowdown(2000);
-          this.sound.play("storm", { volume: GameState.getSfxVolume() });
+          if (!this.rocket.isShieldActive) {
+            this.rocket.activateSlowdown(2000);
+            this.sound.play("storm", { volume: GameState.getSfxVolume() });
+          }
+        }
+
+        if (labels.includes("rocket") && labels.includes("spike")) {
+          if (!this.rocket.isShieldActive) {
+            this.crash();
+          }
         }
 
         if (labels.includes("rocket") && labels.includes("shield")) {
@@ -522,6 +530,46 @@ export class FlightScene extends Scene {
         g.closePath();
         g.fillPath();
         i++;
+      }
+    }
+
+    // Spikes — inward-pointing triangles along both walls; shield protects
+    const spikeHeight = 60; // along the wall
+    const spikeDepth = 36; // inward protrusion
+    const spikeSpacing = 700;
+    const spikesGfx = this.add.graphics().setDepth(-3);
+    spikesGfx.fillStyle(0x707078, 1);
+    spikesGfx.lineStyle(2, 0x1a1a20, 1);
+
+    for (const side of [-1, 1]) {
+      const baseX = side < 0 ? leftX + thickness / 2 : rightX - thickness / 2;
+      const tipX = baseX + -side * spikeDepth;
+      for (let y = top + spikeSpacing; y < bottom; y += spikeSpacing) {
+        const y1 = y - spikeHeight / 2;
+        const y2 = y + spikeHeight / 2;
+        this.matter.add.fromVertices(
+          (baseX + tipX) / 2,
+          y,
+          [
+            { x: baseX, y: y1 },
+            { x: baseX, y: y2 },
+            { x: tipX, y: y },
+          ],
+          {
+            isStatic: true,
+            label: "spike",
+            friction: 0,
+            frictionStatic: 0,
+          },
+          true,
+        );
+        spikesGfx.beginPath();
+        spikesGfx.moveTo(baseX, y1);
+        spikesGfx.lineTo(baseX, y2);
+        spikesGfx.lineTo(tipX, y);
+        spikesGfx.closePath();
+        spikesGfx.fillPath();
+        spikesGfx.strokePath();
       }
     }
   }

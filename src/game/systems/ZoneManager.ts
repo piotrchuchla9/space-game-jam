@@ -52,11 +52,13 @@ export class ZoneManager {
         this.meteorTimer += delta;
         this.elapsed += delta;
 
-        // Spawn obstacles based on zone
-        const spawnInterval = this.getSpawnInterval(altitude);
-        if (this.spawnTimer >= spawnInterval) {
-            this.spawnTimer = 0;
-            this.spawnObstacleForZone(altitude, rocketX);
+        // Spawn obstacles based on zone (birds only — space zone uses dedicated meteors)
+        if (altitude < 15000) {
+            const spawnInterval = this.getSpawnInterval(altitude);
+            if (this.spawnTimer >= spawnInterval) {
+                this.spawnTimer = 0;
+                this.spawnObstacleForZone(altitude, rocketX);
+            }
         }
 
         // Spawn gears (only after launch)

@@ -182,15 +182,16 @@ export class ZoneAmbient {
         }
     }
 
-    private spawnSpaceStars(cameraX: number, cameraY: number): void {
+    private spawnSpaceStars(_cameraX: number, _cameraY: number): void {
         for (let i = 0; i < 60; i++) {
-            const x = cameraX + PhaserMath.Between(-200, this.screenW + 200);
-            const y = cameraY + PhaserMath.Between(-200, this.screenH + 200);
+            const x = PhaserMath.Between(-50, this.screenW + 50);
+            const y = PhaserMath.Between(-50, this.screenH + 50);
             const radius = PhaserMath.FloatBetween(0.8, 2.2);
             const color = Math.random() < 0.15 ? 0xffcc66 : 0xffffff;
             const alpha = PhaserMath.FloatBetween(0.4, 0.95);
 
             const s = this.scene.add.circle(x, y, radius, color);
+            s.setScrollFactor(0);
             s.setAlpha(0);
             s.setDepth(this.depthBg);
 
