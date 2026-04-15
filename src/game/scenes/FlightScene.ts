@@ -192,6 +192,7 @@ export class FlightScene extends Scene {
         color,
       );
       flame.setAlpha(0.9 - i * 0.1);
+      flame.setDepth(-1);
       flame.setVisible(false);
       return flame;
     });
@@ -336,11 +337,11 @@ export class FlightScene extends Scene {
       const flame = this.flameSprites[i];
       flame.setVisible(this.isThrusting);
       if (this.isThrusting) {
-        // Offset each layer slightly further from exhaust
-        const offset = i * 4;
+        // Smaller layers sit in the upper (engine-side) part of the largest layer
+        const offset = i * 8;
         flame.setPosition(
-          exhaustX + Math.cos(exhaustAngle) * offset,
-          exhaustY + Math.sin(exhaustAngle) * offset,
+          exhaustX - Math.cos(exhaustAngle) * offset,
+          exhaustY - Math.sin(exhaustAngle) * offset,
         );
         flame.setRotation(this.rocket.body.angle);
         // Flicker animation
