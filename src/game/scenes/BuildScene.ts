@@ -34,6 +34,7 @@ export class BuildScene extends Scene {
     private soundtrack!: Phaser.Sound.BaseSound;
     private starfield!: StarfieldBackground;
     private partImages: Map<string, GameObjects.Image> = new Map();
+    private bodySegmentImgs: GameObjects.Image[] = [];
     private sidesImgRight!: GameObjects.Image;
     private hitRects: Map<string, GameObjects.Rectangle> = new Map();
     private rightSideHitRect!: GameObjects.Rectangle;
@@ -71,19 +72,22 @@ export class BuildScene extends Scene {
         const layout = this.computePreviewLayout();
 
         // Individual part preview images (dim until a part is selected)
-        const noseImg   = this.add.image(layout.nose.x, layout.nose.y, 'rp_001').setScale(1.5).setAlpha(0.2);
-        const bodyImg   = this.add.image(layout.body.x, layout.body.y, 'rp_009').setScale(1.5).setAlpha(0.2);
-        const engineImg = this.add.image(layout.engine.x, layout.engine.y, 'rp_003').setScale(1.5).setAlpha(0.2);
-        const sidesImgL = this.add.image(layout.sidesL.x, layout.sidesL.y, 'rp_024').setScale(1.0).setAlpha(0.2).setFlipX(true);
-        const sidesImgR = this.add.image(layout.sidesR.x, layout.sidesR.y, 'rp_024').setScale(1.0).setAlpha(0.2);
+        const noseImg    = this.add.image(layout.nose.x, layout.nose.y, 'rp_001').setScale(1.5).setAlpha(0.2);
+        const bodyImg1   = this.add.image(layout.body1.x, layout.body1.y, 'rp_009').setScale(1.5).setAlpha(0.2);
+        const bodyImg2   = this.add.image(layout.body2.x, layout.body2.y, 'rp_009').setScale(1.5).setAlpha(0.2);
+        const bodyImg3   = this.add.image(layout.body3.x, layout.body3.y, 'rp_009').setScale(1.5).setAlpha(0.2);
+        const engineImg  = this.add.image(layout.engine.x, layout.engine.y, 'rp_003').setScale(1.5).setAlpha(0.2);
+        const sidesImgL  = this.add.image(layout.sidesL.x, layout.sidesL.y, 'rp_024').setScale(1.0).setAlpha(0.2).setFlipX(true);
+        const sidesImgR  = this.add.image(layout.sidesR.x, layout.sidesR.y, 'rp_024').setScale(1.0).setAlpha(0.2);
 
         this.partImages.set('nose', noseImg);
-        this.partImages.set('body', bodyImg);
+        this.partImages.set('body', bodyImg1);
         this.partImages.set('engine', engineImg);
         this.partImages.set('sides', sidesImgL);
+        this.bodySegmentImgs = [bodyImg1, bodyImg2, bodyImg3];
         this.sidesImgRight = sidesImgR;
 
-        this.rocketContainer.add([noseImg, bodyImg, engineImg, sidesImgL, sidesImgR]);
+        this.rocketContainer.add([noseImg, bodyImg1, bodyImg2, bodyImg3, engineImg, sidesImgL, sidesImgR]);
 
         // Extra hit area for right side (mirrors the left sides slot)
         const rightSideHit = this.add.rectangle(layout.sidesR.x, layout.sidesR.y, 80, 140, 0, 0)
@@ -96,13 +100,13 @@ export class BuildScene extends Scene {
         this.rocketContainer.add(rightSideHit);
 
         for (const slot of SLOTS) {
-            let hx: number, hy: number;
-            if (slot.key === 'nose')        { hx = layout.nose.x;   hy = layout.nose.y; }
-            else if (slot.key === 'body')   { hx = layout.body.x;   hy = layout.body.y; }
-            else if (slot.key === 'engine') { hx = layout.engine.x; hy = layout.engine.y; }
-            else                            { hx = layout.sidesL.x; hy = layout.sidesL.y; }
+            let hx: number, hy: number, hw: number, hh: number;
+            if (slot.key === 'nose')        { hx = layout.nose.x;   hy = layout.nose.y;          hw = slot.w; hh = slot.h; }
+            else if (slot.key === 'body')   { hx = layout.body1.x;  hy = layout.bodySectionMidY; hw = slot.w; hh = layout.totalBodyH; }
+            else if (slot.key === 'engine') { hx = layout.engine.x; hy = layout.engine.y;        hw = slot.w; hh = slot.h; }
+            else                            { hx = layout.sidesL.x; hy = layout.sidesL.y;        hw = slot.w; hh = slot.h; }
 
-            const hit = this.add.rectangle(hx, hy, slot.w, slot.h, 0, 0)
+            const hit = this.add.rectangle(hx, hy, hw, hh, 0, 0)
                 .setInteractive({ useHandCursor: true });
             hit.on('pointerdown', () => {
                 this.playClick();
@@ -157,6 +161,17 @@ export class BuildScene extends Scene {
             }
         }
 
+        // Sync extra body segments (2 and 3) to match the first
+        const bodyPart = cfg.body ? PARTS[cfg.body] : null;
+        for (const seg of this.bodySegmentImgs.slice(1)) {
+            if (bodyPart?.asset) {
+                seg.setTexture(bodyPart.asset);
+                seg.setAlpha(1.0);
+            } else {
+                seg.setAlpha(0.2);
+            }
+        }
+
         // Sync right sides image
         const sidesPart = cfg.sides ? PARTS[cfg.sides] : null;
         if (sidesPart?.asset) {
@@ -169,12 +184,15 @@ export class BuildScene extends Scene {
         // Recompute positions based on current textures (parts may have different sizes)
         const layout = this.computePreviewLayout();
         this.partImages.get('nose')?.setPosition(layout.nose.x, layout.nose.y);
-        this.partImages.get('body')?.setPosition(layout.body.x, layout.body.y);
         this.partImages.get('engine')?.setPosition(layout.engine.x, layout.engine.y);
         this.partImages.get('sides')?.setPosition(layout.sidesL.x, layout.sidesL.y);
+        const [b1, b2, b3] = this.bodySegmentImgs;
+        b1?.setPosition(layout.body1.x, layout.body1.y);
+        b2?.setPosition(layout.body2.x, layout.body2.y);
+        b3?.setPosition(layout.body3.x, layout.body3.y);
         this.sidesImgRight.setPosition(layout.sidesR.x, layout.sidesR.y);
         this.hitRects.get('nose')?.setPosition(layout.nose.x, layout.nose.y);
-        this.hitRects.get('body')?.setPosition(layout.body.x, layout.body.y);
+        this.hitRects.get('body')?.setPosition(layout.body1.x, layout.bodySectionMidY);
         this.hitRects.get('engine')?.setPosition(layout.engine.x, layout.engine.y);
         this.hitRects.get('sides')?.setPosition(layout.sidesL.x, layout.sidesL.y);
         this.rightSideHitRect?.setPosition(layout.sidesR.x, layout.sidesR.y);
@@ -198,19 +216,27 @@ export class BuildScene extends Scene {
         const noseH  = frameH(noseAsset)  * SCALE;
         const bodyH  = frameH(bodyAsset)  * SCALE;
         const engH   = frameH(engAsset)   * SCALE;
-        const topY   = cy - (noseH + bodyH + engH) / 2;
+        const totalBodyH = bodyH * 3;
+        const topY   = cy - (noseH + totalBodyH + engH) / 2;
 
-        const bodyCenterY = topY + noseH + bodyH / 2;
+        const body1Y = topY + noseH + bodyH / 2;
+        const body2Y = topY + noseH + bodyH * 1.5;
+        const body3Y = topY + noseH + bodyH * 2.5;
+        const bodySectionMidY = topY + noseH + totalBodyH / 2;
         const bodyW = frameW(bodyAsset)  * SCALE;
         const sideW = frameW(sidesAsset) * SIDES_SCALE;
         const sideX = bodyW / 2 + sideW / 2;
 
         return {
             nose:   { x: cx,           y: topY + noseH / 2 },
-            body:   { x: cx,           y: bodyCenterY },
-            engine: { x: cx,           y: topY + noseH + bodyH + engH / 2 },
-            sidesL: { x: cx - sideX,   y: bodyCenterY },
-            sidesR: { x: cx + sideX,   y: bodyCenterY },
+            body1:  { x: cx,           y: body1Y },
+            body2:  { x: cx,           y: body2Y },
+            body3:  { x: cx,           y: body3Y },
+            bodySectionMidY,
+            totalBodyH,
+            engine: { x: cx,           y: topY + noseH + totalBodyH + engH / 2 },
+            sidesL: { x: cx - sideX,   y: bodySectionMidY },
+            sidesR: { x: cx + sideX,   y: bodySectionMidY },
         };
     }
 
@@ -377,12 +403,16 @@ export class BuildScene extends Scene {
         for (const img of this.partImages.values()) {
             img.clearTint();
         }
+        for (const seg of this.bodySegmentImgs) seg.clearTint();
         this.sidesImgRight.clearTint();
 
         if (!key) return;
 
         const img = this.partImages.get(key);
         if (img) img.setTint(0x88eeff);
+        if (key === 'body') {
+            for (const seg of this.bodySegmentImgs) seg.setTint(0x88eeff);
+        }
         if (key === 'sides') this.sidesImgRight.setTint(0x88eeff);
     }
 

@@ -55,7 +55,10 @@ export class FlightScene extends Scene {
       this.load.image(`grass${n}`, `assets/plants/grass${n}.png`);
     }
     for (const n of [9, 13, 15, 18]) {
-      this.load.image(`tree${n}`, `assets/plants/tree${String(n).padStart(2, "0")}.png`);
+      this.load.image(
+        `tree${n}`,
+        `assets/plants/tree${String(n).padStart(2, "0")}.png`,
+      );
     }
 
     for (let i = 1; i <= 9; i++) {
@@ -107,10 +110,10 @@ export class FlightScene extends Scene {
     this.buildLaunchPad();
 
     // Underground fill
-    this.add.rectangle(360, 1400, 6720, 400, 0x3d3d2e).setDepth(-6);
+    this.add.rectangle(360, 1425, 6720, 400, 0x3d3d2e).setDepth(-6);
 
     // Ground visual strip
-    this.add.tileSprite(360, 1215, 6720, 30, "ground").setDepth(-5);
+    this.add.tileSprite(360, 1240, 6720, 30, "ground").setDepth(-5);
 
     this.matter.add.rectangle(360, 1250, 720, 100, {
       isStatic: true,
@@ -440,7 +443,7 @@ export class FlightScene extends Scene {
     }
   }
 
-private buildSideWalls(
+  private buildSideWalls(
     left: number,
     right: number,
     top: number,
@@ -551,18 +554,30 @@ private buildSideWalls(
     const noseH = frameH(noseAsset) * SCALE;
     const bodyH = frameH(bodyAsset) * SCALE;
     const engH = frameH(engAsset) * SCALE;
-    const totalH = noseH + bodyH + engH;
+    const totalBodyH = bodyH * 3;
+    const totalH = noseH + totalBodyH + engH;
     const topY = -totalH / 2;
 
     const noseCenterY = topY + noseH / 2;
-    const bodyCenterY = topY + noseH + bodyH / 2;
-    const engCenterY = topY + noseH + bodyH + engH / 2;
+    const body1Y = topY + noseH + bodyH / 2;
+    const body2Y = topY + noseH + bodyH * 1.5;
+    const body3Y = topY + noseH + bodyH * 2.5;
+    const bodySectionMidY = topY + noseH + totalBodyH / 2;
+    const engCenterY = topY + noseH + totalBodyH + engH / 2;
 
     const noseImg = this.add.image(0, noseCenterY, noseAsset).setScale(SCALE);
-    const bodyImg = this.add.image(0, bodyCenterY, bodyAsset).setScale(SCALE);
+    const bodyImg1 = this.add.image(0, body1Y, bodyAsset).setScale(SCALE);
+    const bodyImg2 = this.add.image(0, body2Y, bodyAsset).setScale(SCALE);
+    const bodyImg3 = this.add.image(0, body3Y, bodyAsset).setScale(SCALE);
     const engImg = this.add.image(0, engCenterY, engAsset).setScale(SCALE);
 
-    const children: Phaser.GameObjects.Image[] = [noseImg, bodyImg, engImg];
+    const children: Phaser.GameObjects.Image[] = [
+      noseImg,
+      bodyImg1,
+      bodyImg2,
+      bodyImg3,
+      engImg,
+    ];
 
     if (cfg.sides && PARTS[cfg.sides]?.asset) {
       const sideAsset = PARTS[cfg.sides].asset!;
@@ -571,11 +586,11 @@ private buildSideWalls(
       const sideX = bodyW / 2 + sideW / 2;
 
       const sidesL = this.add
-        .image(-sideX, bodyCenterY, sideAsset)
+        .image(-sideX, bodySectionMidY, sideAsset)
         .setScale(SCALE)
         .setFlipX(true);
       const sidesR = this.add
-        .image(sideX, bodyCenterY, sideAsset)
+        .image(sideX, bodySectionMidY, sideAsset)
         .setScale(SCALE);
       children.push(sidesL, sidesR);
     }
@@ -585,7 +600,7 @@ private buildSideWalls(
 
   private buildLaunchPad() {
     const rx = 360; // rocket x
-    const groundY = 1215;
+    const groundY = 1240;
     const padW = 160; // display width for all pieces
     const depth = -1;
 
@@ -595,7 +610,7 @@ private buildSideWalls(
       .setOrigin(0.5, 1)
       .setDepth(depth);
 
-    this.scatterGroundPlants(groundY, rx, padW);
+    this.scatterGroundPlants(1230, rx, padW);
   }
 
   private scatterGroundPlants(groundY: number, padX: number, padW: number) {
@@ -612,8 +627,10 @@ private buildSideWalls(
     );
     if (grassKeys.length === 0 && treeKeys.length === 0) return;
 
-    const rand = (min: number, max: number) => min + Math.random() * (max - min);
-    const pick = (arr: string[]): string => arr[Math.floor(Math.random() * arr.length)];
+    const rand = (min: number, max: number) =>
+      min + Math.random() * (max - min);
+    const pick = (arr: string[]): string =>
+      arr[Math.floor(Math.random() * arr.length)];
 
     if (grassKeys.length > 0) {
       const grassStep = 18;
