@@ -372,8 +372,8 @@ export class FlightScene extends Scene {
 
     // Update flame sprites — follow rocket exhaust and animate
     const exhaustAngle = this.rocket.body.angle + Math.PI / 2;
-    const exhaustX = this.rocket.body.position.x + Math.cos(exhaustAngle) * 40;
-    const exhaustY = this.rocket.body.position.y + Math.sin(exhaustAngle) * 40;
+    const exhaustX = this.rocket.body.position.x + Math.cos(exhaustAngle) * 80;
+    const exhaustY = this.rocket.body.position.y + Math.sin(exhaustAngle) * 80;
     const outOfFuel = this.rocket.fuel <= 0 && this.maxAltitude > 50;
     if (outOfFuel && !this.fuelAlertSound.isPlaying) {
       this.fuelAlertSound.play();
@@ -398,9 +398,10 @@ export class FlightScene extends Scene {
           exhaustY - Math.sin(exhaustAngle) * offset,
         );
         flame.setRotation(this.rocket.body.angle);
-        // Flicker animation
-        const flicker = 0.7 + Math.random() * 0.3;
-        flame.setScale(flicker, 0.8 + Math.random() * 0.4);
+        // Flicker animation — scale up during boost
+        const boostScale = this.rocket.isBoostActive ? 1.8 : 1.0;
+        const flicker = (0.7 + Math.random() * 0.3) * boostScale;
+        flame.setScale(flicker, (0.8 + Math.random() * 0.4) * boostScale);
       }
     }
 
