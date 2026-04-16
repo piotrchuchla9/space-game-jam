@@ -105,8 +105,11 @@ export class Rocket {
         parts: [mainPart, leftPart, rightPart],
         label: "rocket",
         frictionAir: this.angularDamping,
-        density: totalWeight * 0.001,
       }) as MatterJS.BodyType;
+
+      // density on compound bodies is unreliable — set mass explicitly to match
+      // the single-body formula: density(totalWeight*0.001) * area(30×80) = totalWeight*2.4
+      (this.scene.matter as any).body.setMass(compound, totalWeight * 2.4);
 
       this.body = compound;
     } else {
