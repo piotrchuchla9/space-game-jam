@@ -107,7 +107,7 @@ export class ZoneAmbient {
         }
 
         if (this.currentZone === 'atmosphere') {
-            this.updateAtmosphere(delta, cameraX, cameraY);
+            this.updateAtmosphere(delta, altitude, cameraX, cameraY);
         } else if (this.currentZone === 'turbulence') {
             this.updateTurbulence(delta, cameraX, cameraY);
         } else if (this.currentZone === 'space') {
@@ -115,7 +115,8 @@ export class ZoneAmbient {
         }
     }
 
-    private updateAtmosphere(delta: number, cameraX: number, cameraY: number): void {
+    private updateAtmosphere(delta: number, altitude: number, cameraX: number, cameraY: number): void {
+        if (altitude < 400) return;
         const clouds = this.activeElements.filter(e => e.type === 'cloud').length;
         this.spawnTimers.cloud = (this.spawnTimers.cloud ?? 1500) + delta;
         if (clouds < 8 && this.spawnTimers.cloud >= PhaserMath.Between(1200, 2000)) {
