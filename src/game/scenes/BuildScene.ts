@@ -36,6 +36,8 @@ export class BuildScene extends Scene {
     private starfield!: StarfieldBackground;
     private partImages: Map<string, GameObjects.Image> = new Map();
     private sidesImgRight!: GameObjects.Image;
+    private hitRects: Map<string, GameObjects.Rectangle> = new Map();
+    private rightSideHitRect!: GameObjects.Rectangle;
 
     constructor() {
         super('BuildScene');
@@ -76,12 +78,14 @@ export class BuildScene extends Scene {
 
         this.rocketContainer = this.add.container(0, 0);
 
+        const layout = this.computePreviewLayout();
+
         // Individual part preview images (dim until a part is selected)
-        const noseImg   = this.add.image(360, 540, 'rp_001').setScale(1.5).setAlpha(0.2);
-        const bodyImg   = this.add.image(360, 690, 'rp_009').setScale(1.5).setAlpha(0.2);
-        const engineImg = this.add.image(360, 840, 'rp_003').setScale(1.5).setAlpha(0.2);
-        const sidesImgL = this.add.image(248, 670, 'rp_024').setScale(1.0).setAlpha(0.2).setFlipX(true);
-        const sidesImgR = this.add.image(472, 670, 'rp_024').setScale(1.0).setAlpha(0.2);
+        const noseImg   = this.add.image(layout.nose.x, layout.nose.y, 'rp_001').setScale(1.5).setAlpha(0.2);
+        const bodyImg   = this.add.image(layout.body.x, layout.body.y, 'rp_009').setScale(1.5).setAlpha(0.2);
+        const engineImg = this.add.image(layout.engine.x, layout.engine.y, 'rp_003').setScale(1.5).setAlpha(0.2);
+        const sidesImgL = this.add.image(layout.sidesL.x, layout.sidesL.y, 'rp_024').setScale(1.0).setAlpha(0.2).setFlipX(true);
+        const sidesImgR = this.add.image(layout.sidesR.x, layout.sidesR.y, 'rp_024').setScale(1.0).setAlpha(0.2);
 
         this.partImages.set('nose', noseImg);
         this.partImages.set('body', bodyImg);
@@ -92,21 +96,29 @@ export class BuildScene extends Scene {
         this.rocketContainer.add([noseImg, bodyImg, engineImg, sidesImgL, sidesImgR]);
 
         // Extra hit area for right side (mirrors the left sides slot)
-        const rightSideHit = this.add.rectangle(472, 680, 80, 140, 0, 0)
+        const rightSideHit = this.add.rectangle(layout.sidesR.x, layout.sidesR.y, 80, 140, 0, 0)
             .setInteractive({ useHandCursor: true });
         rightSideHit.on('pointerdown', () => {
             this.playClick();
             this.openPartPanel(SLOTS.find(s => s.key === 'sides')!);
         });
+        this.rightSideHitRect = rightSideHit;
         this.rocketContainer.add(rightSideHit);
 
         for (const slot of SLOTS) {
-            const hit = this.add.rectangle(slot.x, slot.y, slot.w, slot.h, 0, 0)
+            let hx: number, hy: number;
+            if (slot.key === 'nose')        { hx = layout.nose.x;   hy = layout.nose.y; }
+            else if (slot.key === 'body')   { hx = layout.body.x;   hy = layout.body.y; }
+            else if (slot.key === 'engine') { hx = layout.engine.x; hy = layout.engine.y; }
+            else                            { hx = layout.sidesL.x; hy = layout.sidesL.y; }
+
+            const hit = this.add.rectangle(hx, hy, slot.w, slot.h, 0, 0)
                 .setInteractive({ useHandCursor: true });
             hit.on('pointerdown', () => {
                 this.playClick();
                 this.openPartPanel(slot);
             });
+            this.hitRects.set(slot.key, hit);
             this.rocketContainer.add(hit);
         }
 
@@ -167,6 +179,53 @@ export class BuildScene extends Scene {
         } else {
             this.sidesImgRight.setAlpha(0.2);
         }
+
+        // Recompute positions based on current textures (parts may have different sizes)
+        const layout = this.computePreviewLayout();
+        this.partImages.get('nose')?.setPosition(layout.nose.x, layout.nose.y);
+        this.partImages.get('body')?.setPosition(layout.body.x, layout.body.y);
+        this.partImages.get('engine')?.setPosition(layout.engine.x, layout.engine.y);
+        this.partImages.get('sides')?.setPosition(layout.sidesL.x, layout.sidesL.y);
+        this.sidesImgRight.setPosition(layout.sidesR.x, layout.sidesR.y);
+        this.hitRects.get('nose')?.setPosition(layout.nose.x, layout.nose.y);
+        this.hitRects.get('body')?.setPosition(layout.body.x, layout.body.y);
+        this.hitRects.get('engine')?.setPosition(layout.engine.x, layout.engine.y);
+        this.hitRects.get('sides')?.setPosition(layout.sidesL.x, layout.sidesL.y);
+        this.rightSideHitRect?.setPosition(layout.sidesR.x, layout.sidesR.y);
+    }
+
+    private computePreviewLayout() {
+        const SCALE = 1.5;
+        const SIDES_SCALE = 1.0;
+        const cx = 360;
+        const cy = 690;
+
+        const frameH = (key: string) => this.textures.get(key).source[0]?.height ?? 64;
+        const frameW = (key: string) => this.textures.get(key).source[0]?.width ?? 68;
+
+        const cfg = GameState.rocketConfig;
+        const noseAsset  = cfg.nose   && PARTS[cfg.nose]?.asset   ? PARTS[cfg.nose].asset!   : 'rp_001';
+        const bodyAsset  = cfg.body   && PARTS[cfg.body]?.asset   ? PARTS[cfg.body].asset!   : 'rp_009';
+        const engAsset   = cfg.engine && PARTS[cfg.engine]?.asset ? PARTS[cfg.engine].asset! : 'rp_003';
+        const sidesAsset = cfg.sides  && PARTS[cfg.sides]?.asset  ? PARTS[cfg.sides].asset!  : 'rp_024';
+
+        const noseH  = frameH(noseAsset)  * SCALE;
+        const bodyH  = frameH(bodyAsset)  * SCALE;
+        const engH   = frameH(engAsset)   * SCALE;
+        const topY   = cy - (noseH + bodyH + engH) / 2;
+
+        const bodyCenterY = topY + noseH + bodyH / 2;
+        const bodyW = frameW(bodyAsset)  * SCALE;
+        const sideW = frameW(sidesAsset) * SIDES_SCALE;
+        const sideX = bodyW / 2 + sideW / 2;
+
+        return {
+            nose:   { x: cx,           y: topY + noseH / 2 },
+            body:   { x: cx,           y: bodyCenterY },
+            engine: { x: cx,           y: topY + noseH + bodyH + engH / 2 },
+            sidesL: { x: cx - sideX,   y: bodyCenterY },
+            sidesR: { x: cx + sideX,   y: bodyCenterY },
+        };
     }
 
     private buildSummary(): string {
