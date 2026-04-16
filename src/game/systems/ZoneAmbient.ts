@@ -38,7 +38,7 @@ export class ZoneAmbient {
             this.transitionTo(newZone);
         }
 
-        this.updateActive(delta, cameraX, cameraY, rocket ?? null);
+        this.updateActive(delta, altitude, cameraX, cameraY, rocket ?? null);
     }
 
     destroy(): void {
@@ -78,7 +78,7 @@ export class ZoneAmbient {
         this.currentZone = newZone;
     }
 
-    private updateActive(delta: number, cameraX: number, cameraY: number, rocket: Rocket | null): void {
+    private updateActive(delta: number, altitude: number, cameraX: number, cameraY: number, rocket: Rocket | null): void {
         for (const e of this.activeElements) {
             if (e.driftX) {
                 const mover = e.obj as unknown as { x: number };
@@ -87,7 +87,7 @@ export class ZoneAmbient {
         }
 
         if (this.currentZone === 'atmosphere') {
-            this.updateAtmosphere(delta, cameraX, cameraY);
+            this.updateAtmosphere(delta, altitude, cameraX, cameraY);
         } else if (this.currentZone === 'turbulence') {
             this.updateTurbulence(delta, cameraX, cameraY);
         } else if (this.currentZone === 'space') {
@@ -95,7 +95,8 @@ export class ZoneAmbient {
         }
     }
 
-    private updateAtmosphere(delta: number, cameraX: number, cameraY: number): void {
+    private updateAtmosphere(delta: number, altitude: number, cameraX: number, cameraY: number): void {
+        if (altitude < 400) return;
         const clouds = this.activeElements.filter(e => e.type === 'cloud').length;
         this.spawnTimers.cloud = (this.spawnTimers.cloud ?? 1500) + delta;
         if (clouds < 8 && this.spawnTimers.cloud >= PhaserMath.Between(1200, 2000)) {
