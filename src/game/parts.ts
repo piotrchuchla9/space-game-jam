@@ -9,12 +9,12 @@ export interface PartDef {
   asset?: string; // Phaser texture key
   // Slot-specific stats
   drag?: number; // nose
+  shield?: number; // body — absorbs hits and reduces negative effects
   thrust?: number; // engine
   control?: number; // engine
   fuelBurn?: number; // engine
   rotationDamping?: number; // sides
   bonusFuel?: number; // sides
-  shieldHP?: number; // sides
 }
 
 export const PARTS: Record<string, PartDef> = {
@@ -102,14 +102,6 @@ export const PARTS: Record<string, PartDef> = {
     unlockCost: 10,
     asset: "rp_017",
   },
-  body_12: {
-    id: "body_12",
-    name: "Window Pod",
-    slot: "body",
-    weight: 8,
-    unlockCost: 20,
-    asset: "rp_012",
-  },
   body_16: {
     id: "body_16",
     name: "Reinforced",
@@ -117,6 +109,7 @@ export const PARTS: Record<string, PartDef> = {
     weight: 7,
     unlockCost: 30,
     asset: "rp_016",
+    shield: 1,
   },
   body_18: {
     id: "body_18",
@@ -125,6 +118,7 @@ export const PARTS: Record<string, PartDef> = {
     weight: 6,
     unlockCost: 30,
     asset: "rp_018",
+    shield: 1,
   },
   body_19: {
     id: "body_19",
@@ -133,6 +127,7 @@ export const PARTS: Record<string, PartDef> = {
     weight: 5,
     unlockCost: 30,
     asset: "rp_019",
+    shield: 1,
   },
   body_10: {
     id: "body_10",
@@ -141,6 +136,7 @@ export const PARTS: Record<string, PartDef> = {
     weight: 4,
     unlockCost: 40,
     asset: "rp_010",
+    shield: 2,
   },
 
   // --- ENGINE ---
@@ -279,7 +275,6 @@ export const PARTS: Record<string, PartDef> = {
     unlockCost: 45,
     asset: "rp_023",
     bonusFuel: 20,
-    shieldHP: 1,
   },
   sides_22: {
     id: "sides_22",

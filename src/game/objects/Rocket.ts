@@ -10,7 +10,8 @@ export class Rocket {
   // Runtime state
   fuel: number;
   maxFuel: number;
-  shieldHP: number;
+  shieldHP: number;    // remaining hits before crash (from body shield)
+  shieldRating: number; // raw shield value — scales all damage reduction
   thrust: number;
   control: number;
   fuelBurn: number;
@@ -45,15 +46,17 @@ export class Rocket {
     this.fuelBurn = engine.fuelBurn ?? 1.0;
     this.dragMultiplier = nose.drag ?? 1.0;
 
+    // Body shield — absorbs hits and scales down negative effects
+    this.shieldRating = body?.shield ?? 0;
+    this.shieldHP = this.shieldRating; // each shield point = one absorbed hit
+
     // Module bonuses (sides is symmetric, applied once)
     let bonusFuel = 0;
-    this.shieldHP = 0;
     this.angularDamping = 0.01; // base
     this.hasMagnet = false;
 
     if (sidesMod) {
       if (sidesMod.bonusFuel) bonusFuel += sidesMod.bonusFuel;
-      if (sidesMod.shieldHP) this.shieldHP += sidesMod.shieldHP;
       if (sidesMod.rotationDamping)
         this.angularDamping = sidesMod.rotationDamping;
     }
@@ -138,8 +141,10 @@ export class Rocket {
   }
 
     activateSlowdown(duration: number = 2000) {
+        // Shield reduces storm slowdown duration: shield 1 → -35%, shield 2 → -70%
+        const reducedDuration = duration * Math.max(0.3, 1 - this.shieldRating * 0.35);
         this.isSlowed = true;
-        this.scene.time.delayedCall(duration, () => {
+        this.scene.time.delayedCall(reducedDuration, () => {
             this.isSlowed = false;
         });
     }
@@ -198,8 +203,9 @@ export class Rocket {
   }
 
   applyBirdHit(birdVelocityX: number) {
-    // Tilt rocket in the direction the bird was flying
-    const torque = Math.sign(birdVelocityX) * 0.01;
+    // Shield reduces bird torque: shield 1 → -40%, shield 2 → -80%
+    const torqueScale = Math.max(0.2, 1 - this.shieldRating * 0.4);
+    const torque = Math.sign(birdVelocityX) * 0.01 * torqueScale;
     (this.scene.matter.body as any).setAngularVelocity(
       this.body,
       this.body.angularVelocity + torque,

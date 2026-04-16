@@ -230,7 +230,7 @@ export class BuildScene extends Scene {
         const drag = nose.drag ?? 1;
         const bonusFuel = sidesMod?.bonusFuel ?? 0;
         const fuel = BASE_FUEL + bonusFuel;
-        const shield = sidesMod?.shieldHP ?? 0;
+        const shield = body.shield ?? 0;
         const weight = engine.weight + nose.weight + body.weight + (sidesMod?.weight ?? 0);
 
         const parts: string[] = [
@@ -369,7 +369,7 @@ export class BuildScene extends Scene {
         if (part.fuelBurn !== undefined) stats.push(`burn:${part.fuelBurn}`);
         if (part.rotationDamping !== undefined) stats.push(`stab:${part.rotationDamping}`);
         if (part.bonusFuel !== undefined) stats.push(`+fuel:${part.bonusFuel}`);
-        if (part.shieldHP !== undefined) stats.push(`shield:${part.shieldHP}`);
+        if (part.shield !== undefined) stats.push(`shield:${part.shield}`);
         return stats.join(' | ');
     }
 
