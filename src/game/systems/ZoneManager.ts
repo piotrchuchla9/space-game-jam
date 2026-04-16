@@ -20,6 +20,12 @@ interface SpawnedEntity {
     };
 }
 
+interface PlannedSpawn {
+    altitude: number;
+    x: number;
+    type: 'gear' | 'canister' | 'flame' | 'shield';
+}
+
 export class ZoneManager {
     private scene: Scene;
     private obstacles: SpawnedEntity[] = [];
@@ -30,24 +36,19 @@ export class ZoneManager {
     private storms: SpawnedEntity[] = [];
     private meteors: SpawnedEntity[] = [];
     private spawnTimer: number = 0;
-    private gearTimer: number = 0;
-    private canisterTimer: number = 0;
-    private flameTimer: number = 0;
-    private shieldTimer: number = 0;
     private stormTimer: number = 0;
     private meteorTimer: number = 0;
     private elapsed: number = 0;
+    private plannedSpawns: PlannedSpawn[] = [];
+    private nextSpawnIndex: number = 0;
 
     constructor(scene: Scene) {
         this.scene = scene;
+        this.plannedSpawns = this.generateSpawnMap(50000);
     }
 
     update(delta: number, altitude: number, rocketX: number) {
         this.spawnTimer += delta;
-        this.gearTimer += delta;
-        this.canisterTimer += delta;
-        this.flameTimer += delta;
-        this.shieldTimer += delta;
         this.stormTimer += delta;
         this.meteorTimer += delta;
         this.elapsed += delta;
@@ -58,40 +59,6 @@ export class ZoneManager {
             if (this.spawnTimer >= spawnInterval) {
                 this.spawnTimer = 0;
                 this.spawnObstacleForZone(altitude, rocketX);
-            }
-        }
-
-        // Spawn gears (only after launch)
-        if (altitude > 0) {
-            const gearInterval = altitude < 1000 ? 2000 : altitude < 3000 ? 1200 : 2500;
-            if (this.gearTimer >= gearInterval) {
-                this.gearTimer = 0;
-                this.spawnGearNearRocket(altitude, rocketX);
-            }
-        }
-
-        // Spawn canisters — every ~5s, only during flight
-        if (altitude > 0) {
-            if (this.canisterTimer >= 5000) {
-                this.canisterTimer = 0;
-                this.spawnCanisterNearRocket(altitude, rocketX);
-            }
-        }
-
-        // Spawn flames — every ~5s, 2 at a time, only during flight
-        if (altitude > 0) {
-            if (this.flameTimer >= 5000) {
-                this.flameTimer = 0;
-                this.spawnFlameNearRocket(altitude, rocketX);
-                this.spawnFlameNearRocket(altitude, rocketX);
-            }
-        }
-
-        // Spawn shields — every ~8s, only during flight
-        if (altitude > 0) {
-            if (this.shieldTimer >= 8000) {
-                this.shieldTimer = 0;
-                this.spawnShieldNearRocket(altitude, rocketX);
             }
         }
 
@@ -109,6 +76,17 @@ export class ZoneManager {
                 this.meteorTimer = 0;
                 this.spawnMeteorNearRocket(altitude, rocketX);
             }
+        }
+
+        // Lazy-spawn collectibles: create physics bodies only for items
+        // within the upcoming window (2500 altitude units ahead of rocket).
+        // plannedSpawns is sorted by altitude, nextSpawnIndex advances forward only.
+        const spawnAheadWindow = 2500;
+        while (this.nextSpawnIndex < this.plannedSpawns.length) {
+            const spawn = this.plannedSpawns[this.nextSpawnIndex];
+            if (spawn.altitude > altitude + spawnAheadWindow) break;
+            this.instantiatePlannedSpawn(spawn.type, spawn.x, 1100 - spawn.altitude);
+            this.nextSpawnIndex++;
         }
 
         // Cleanup far-away entities
@@ -191,42 +169,47 @@ export class ZoneManager {
         }
     }
 
-    private spawnGearNearRocket(altitude: number, rocketX: number) {
-        const x = rocketX + (Math.random() - 0.5) * 500;
-        const rocketY = 1100 - altitude;
-        const y = rocketY - 400 - Math.random() * 400;
+    private generateSpawnMap(maxAltitude: number = 50000): PlannedSpawn[] {
+        const spawns: PlannedSpawn[] = [];
+        // Full world horizontal bounds (from matter.world.setBounds in FlightScene)
+        const worldLeft = -2600;
+        const worldRight = 3560;
+        const worldWidth = worldRight - worldLeft;
 
-        const entity = spawnGear(this.scene, x, y);
-        this.gears.push(entity);
+        const rnd = () => worldLeft + Math.random() * worldWidth;
+
+        const minAltitude = 400;
+
+        // Gears: ~600 fully randomly placed across entire map
+        for (let i = 0; i < 600; i++) {
+            spawns.push({ altitude: minAltitude + Math.random() * (maxAltitude - minAltitude), x: rnd(), type: 'gear' });
+        }
+
+        // Canisters: ~140 randomly placed
+        for (let i = 0; i < 140; i++) {
+            spawns.push({ altitude: minAltitude + Math.random() * (maxAltitude - minAltitude), x: rnd(), type: 'canister' });
+        }
+
+        // Flames: ~70 randomly placed, each independent (no pairing)
+        for (let i = 0; i < 70; i++) {
+            spawns.push({ altitude: minAltitude + Math.random() * (maxAltitude - minAltitude), x: rnd(), type: 'flame' });
+        }
+
+        // Shields: ~80 randomly placed
+        for (let i = 0; i < 80; i++) {
+            spawns.push({ altitude: minAltitude + Math.random() * (maxAltitude - minAltitude), x: rnd(), type: 'shield' });
+        }
+
+        return spawns.sort((a, b) => a.altitude - b.altitude);
     }
 
-    private spawnCanisterNearRocket(altitude: number, rocketX: number) {
-        const x = rocketX + (Math.random() - 0.5) * 400;
-        const rocketY = 1100 - altitude;
-        const y = rocketY - 300 - Math.random() * 500;
-
-        const entity = spawnCanister(this.scene, x, y);
-        this.canisters.push(entity);
-    }
-
-    private spawnShieldNearRocket(altitude: number, rocketX: number) {
-        const x = rocketX + (Math.random() - 0.5) * 400;
-        const rocketY = 1100 - altitude;
-        const y = rocketY - 300 - Math.random() * 500;
-
-        const entity = spawnShield(this.scene, x, y);
-        this.shields.push(entity);
-    }
-
-    private spawnMeteorNearRocket(altitude: number, rocketX: number) {
-        const direction = Math.random() < 0.5 ? -1 : 1;
-        // Spawn meteor at top of rocket's viewport, offset to the opposite side of travel direction
-        const rocketY = 1100 - altitude;
-        const x = rocketX + (direction === 1 ? -400 : 400) + (Math.random() - 0.5) * 300;
-        const y = rocketY - 900 - Math.random() * 300;
-
-        const entity = spawnMeteorObstacle(this.scene, x, y, direction);
-        this.meteors.push(entity);
+    private instantiatePlannedSpawn(type: 'gear' | 'canister' | 'flame' | 'shield', x: number, y: number) {
+        switch (type) {
+            case 'gear':     this.gears.push(spawnGear(this.scene, x, y)); break;
+            case 'canister': this.canisters.push(spawnCanister(this.scene, x, y)); break;
+            case 'flame':    this.flames.push(spawnFlame(this.scene, x, y)); break;
+            case 'shield':   this.shields.push(spawnShield(this.scene, x, y)); break;
+        }
     }
 
     private spawnStormNearRocket(altitude: number, rocketX: number) {
@@ -238,13 +221,15 @@ export class ZoneManager {
         this.storms.push(entity);
     }
 
-    private spawnFlameNearRocket(altitude: number, rocketX: number) {
-        const x = rocketX + (Math.random() - 0.5) * 400;
+    private spawnMeteorNearRocket(altitude: number, rocketX: number) {
+        const direction = Math.random() < 0.5 ? -1 : 1;
+        // Spawn meteor at top of rocket's viewport, offset to the opposite side of travel direction
         const rocketY = 1100 - altitude;
-        const y = rocketY - 300 - Math.random() * 500;
+        const x = rocketX + (direction === 1 ? -400 : 400) + (Math.random() - 0.5) * 300;
+        const y = rocketY - 900 - Math.random() * 300;
 
-        const entity = spawnFlame(this.scene, x, y);
-        this.flames.push(entity);
+        const entity = spawnMeteorObstacle(this.scene, x, y, direction);
+        this.meteors.push(entity);
     }
 
     private applyTurbulence() {
@@ -269,38 +254,22 @@ export class ZoneManager {
             return true;
         });
 
-        this.gears = this.gears.filter(e => {
-            if (!e.body.id) return false; // already removed (collected)
-            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
-            if (dist > maxDist) {
+        // Keep collectibles within 8000px below the rocket so it can collect on the way down.
+        // Beyond that range the rocket can't realistically reach them — remove to keep physics lean.
+        const belowCutoff = rocketY + 8000;
+        const removeCollectible = (e: SpawnedEntity, below: number) => {
+            if (!e.body.id) return true;
+            if (e.body.position.y > below) {
                 e.graphic.destroy();
                 this.scene.matter.world.remove(e.body);
-                return false;
+                return true;
             }
-            return true;
-        });
-
-        this.canisters = this.canisters.filter(e => {
-            if (!e.body.id) return false;
-            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
-            if (dist > maxDist) {
-                e.graphic.destroy();
-                this.scene.matter.world.remove(e.body);
-                return false;
-            }
-            return true;
-        });
-
-        this.flames = this.flames.filter(e => {
-            if (!e.body.id) return false;
-            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
-            if (dist > maxDist) {
-                e.graphic.destroy();
-                this.scene.matter.world.remove(e.body);
-                return false;
-            }
-            return true;
-        });
+            return false;
+        };
+        this.gears = this.gears.filter(e => !removeCollectible(e, belowCutoff));
+        this.canisters = this.canisters.filter(e => !removeCollectible(e, belowCutoff));
+        this.flames = this.flames.filter(e => !removeCollectible(e, belowCutoff));
+        this.shields = this.shields.filter(e => !removeCollectible(e, belowCutoff));
 
         this.meteors = this.meteors.filter(e => {
             if (!e.body.id) return false;
@@ -315,17 +284,6 @@ export class ZoneManager {
         });
 
         this.storms = this.storms.filter(e => {
-            if (!e.body.id) return false;
-            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
-            if (dist > maxDist) {
-                e.graphic.destroy();
-                this.scene.matter.world.remove(e.body);
-                return false;
-            }
-            return true;
-        });
-
-        this.shields = this.shields.filter(e => {
             if (!e.body.id) return false;
             const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
             if (dist > maxDist) {

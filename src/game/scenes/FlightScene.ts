@@ -185,7 +185,6 @@ export class FlightScene extends Scene {
             this.zoneManager.removeMeteorByBody(meteorBody);
           }
         }
-
         if (labels.includes("rocket") && labels.includes("storm")) {
           const stormBody =
             pair.bodyA.label === "storm" ? pair.bodyA : pair.bodyB;
@@ -257,6 +256,7 @@ export class FlightScene extends Scene {
       loop: true,
       volume: GameState.getSfxVolume(),
     });
+
   }
 
   update(_time: number, delta: number) {

@@ -28,8 +28,28 @@ export class ZoneAmbient {
     private readonly depthBg = -3;
     private readonly depthFx = -2;
 
+    private plannedBlackHoles: { altitude: number; worldX: number }[] = [];
+    private bhNextIndex: number = 0;
+
     constructor(scene: Scene) {
         this.scene = scene;
+        this.plannedBlackHoles = this.generateBlackHoleMap();
+    }
+
+    private generateBlackHoleMap(): { altitude: number; worldX: number }[] {
+        const holes: { altitude: number; worldX: number }[] = [];
+        const worldLeft = -2600;
+        const worldRight = 3560;
+        const minAlt = 15500;
+        const maxAlt = 50000;
+        const count = 25;
+        for (let i = 0; i < count; i++) {
+            holes.push({
+                altitude: minAlt + Math.random() * (maxAlt - minAlt),
+                worldX: worldLeft + Math.random() * (worldRight - worldLeft),
+            });
+        }
+        return holes.sort((a, b) => a.altitude - b.altitude);
     }
 
     update(delta: number, altitude: number, cameraX: number, cameraY: number, rocket?: Rocket | null): void {
@@ -38,7 +58,7 @@ export class ZoneAmbient {
             this.transitionTo(newZone);
         }
 
-        this.updateActive(delta, cameraX, cameraY, rocket ?? null);
+        this.updateActive(delta, altitude, cameraX, cameraY, rocket ?? null);
     }
 
     destroy(): void {
@@ -78,7 +98,7 @@ export class ZoneAmbient {
         this.currentZone = newZone;
     }
 
-    private updateActive(delta: number, cameraX: number, cameraY: number, rocket: Rocket | null): void {
+    private updateActive(delta: number, altitude: number, cameraX: number, cameraY: number, rocket: Rocket | null): void {
         for (const e of this.activeElements) {
             if (e.driftX) {
                 const mover = e.obj as unknown as { x: number };
@@ -91,7 +111,7 @@ export class ZoneAmbient {
         } else if (this.currentZone === 'turbulence') {
             this.updateTurbulence(delta, cameraX, cameraY);
         } else if (this.currentZone === 'space') {
-            this.updateSpace(delta, cameraX, cameraY, rocket);
+            this.updateSpace(delta, altitude, cameraX, cameraY, rocket);
         }
     }
 
@@ -312,7 +332,7 @@ export class ZoneAmbient {
         }
     }
 
-    private updateSpace(delta: number, cameraX: number, cameraY: number, rocket: Rocket | null): void {
+    private updateSpace(delta: number, altitude: number, cameraX: number, cameraY: number, rocket: Rocket | null): void {
         this.cullOffscreenPlanets(cameraY);
         const stars = this.activeElements.filter(e => e.type === 'star').length;
         if (stars === 0) {
@@ -333,19 +353,19 @@ export class ZoneAmbient {
             this.spawnPlanet(cameraX, cameraY);
         }
 
-        const holes = this.activeElements.filter(e => e.type === 'blackhole' && !e.consumed).length;
-        this.spawnTimers.blackhole = (this.spawnTimers.blackhole ?? 0) + delta;
-        if (holes < 2 && this.spawnTimers.blackhole >= PhaserMath.Between(3000, 5000)) {
-            this.spawnTimers.blackhole = 0;
-            this.spawnBlackHole(cameraX, cameraY);
+        // Lazy-spawn pre-planned black holes just ahead of the viewport (~800 altitude units = just above screen top)
+        const bhAheadWindow = 800;
+        while (this.bhNextIndex < this.plannedBlackHoles.length) {
+            const bh = this.plannedBlackHoles[this.bhNextIndex];
+            if (bh.altitude > altitude + bhAheadWindow) break;
+            this.spawnBlackHoleAt(bh.worldX, 1100 - bh.altitude);
+            this.bhNextIndex++;
         }
 
         this.updateBlackHoles(delta, cameraY, rocket);
     }
 
-    private spawnBlackHole(cameraX: number, cameraY: number): void {
-        const x = cameraX + PhaserMath.Between(80, this.screenW - 80);
-        const y = cameraY + PhaserMath.Between(200, this.screenH - 300);
+    private spawnBlackHoleAt(x: number, y: number): void {
 
         const container = this.scene.add.container(x, y);
         container.setDepth(this.depthFx);
