@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { GameState } from '../GameState';
-import { PARTS, getPartsForSlot, BUILD_BUDGET, BASE_FUEL, SlotType, PartDef } from '../parts';
+import { PARTS, getPartsForSlot, BASE_FUEL, SlotType, PartDef } from '../parts';
 import { StarfieldBackground } from '../ui/StarfieldBackground';
 import { CartoonButton } from '../ui/CartoonButton';
 import { warpIn, warpOut, rocketLiftoff } from '../ui/SceneTransition';
@@ -26,7 +26,6 @@ const SLOTS: SlotUI[] = [
 ];
 
 export class BuildScene extends Scene {
-    private budgetText!: GameObjects.Text;
     private gearsText!: GameObjects.Text;
     private rocketContainer!: GameObjects.Container;
     private partPanel: GameObjects.Container | null = null;
@@ -53,15 +52,6 @@ export class BuildScene extends Scene {
         this.events.on('shutdown', () => this.soundtrack.stop());
 
         this.starfield = new StarfieldBackground(this, { density: 0.4 });
-
-        panel(this, 110, 50, 200, 48);
-        this.budgetText = this.add.text(110, 50, '', {
-            fontFamily: 'KenneyFuture, sans-serif',
-            fontSize: '20px',
-            color: HEX.ink,
-            stroke: HEX.accentCyan,
-            strokeThickness: 3,
-        }).setOrigin(0.5);
 
         panel(this, 610, 50, 180, 48);
         const gearIcon = this.add.image(555, 50, 'gear').setScale(0.35);
@@ -146,14 +136,10 @@ export class BuildScene extends Scene {
     }
 
     private refreshUI() {
-        const used = GameState.getBudgetUsed();
-        this.budgetText.setText(`BUDGET ${used}/${BUILD_BUDGET}`);
-        this.budgetText.setColor(used > BUILD_BUDGET ? HEX.accentPink : HEX.ink);
         this.gearsText.setText(`${GameState.currency}G`);
 
         const hasEngine = !!GameState.rocketConfig.engine;
-        const overBudget = GameState.getBudgetUsed() > BUILD_BUDGET;
-        this.launchBtn.setEnabled(hasEngine && !overBudget);
+        this.launchBtn.setEnabled(hasEngine);
         this.summaryText.setText(this.buildSummary());
         this.updatePartImages();
     }
@@ -334,14 +320,27 @@ export class BuildScene extends Scene {
             });
             container.add(statsText);
 
-            const costText = this.add.text(150, y - 10, `$${part.budgetCost}`, {
-                fontFamily: 'KenneyFuture, sans-serif',
-                fontSize: '18px',
-                color: HEX.ink,
-                stroke: HEX.accentWarm,
-                strokeThickness: 2,
-            }).setOrigin(1, 0);
-            container.add(costText);
+            if (!unlocked && part.unlockCost !== null) {
+                const canAfford = GameState.currency >= part.unlockCost;
+                const costText = this.add.text(150, y, `${part.unlockCost}G`, {
+                    fontFamily: 'KenneyFuture, sans-serif',
+                    fontSize: '18px',
+                    color: canAfford ? HEX.accentWarm : HEX.accentPink,
+                    stroke: HEX.ink,
+                    strokeThickness: 2,
+                }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
+                costText.on('pointerdown', () => {
+                    if (GameState.unlockPart(part.id)) {
+                        this.sound.play('buy', { volume: GameState.getSfxVolume() });
+                        burst(this, panelX, panelY + y);
+                        this.closePartPanel();
+                        this.openPartPanel(slot);
+                    } else {
+                        this.sound.play('error', { volume: GameState.getSfxVolume() });
+                    }
+                });
+                container.add(costText);
+            }
 
             if (unlocked) {
                 nameText.setInteractive({ useHandCursor: true });
@@ -353,23 +352,6 @@ export class BuildScene extends Scene {
                 });
                 nameText.on('pointerover', () => nameText.setColor(HEX.accentCyan));
                 nameText.on('pointerout', () => nameText.setColor(equipped ? '#007744' : HEX.ink));
-            } else {
-                const unlockBtn = this.add.text(150, y + 18, `UNLOCK: ${part.unlockCost}G`, {
-                    fontFamily: '"Trebuchet MS", sans-serif',
-                    fontSize: '13px',
-                    color: GameState.currency >= (part.unlockCost ?? 0) ? '#7a5500' : '#aa0033',
-                }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
-                unlockBtn.on('pointerdown', () => {
-                    if (GameState.unlockPart(part.id)) {
-                        this.sound.play('buy', { volume: GameState.getSfxVolume() });
-                        burst(this, panelX, panelY + y);
-                        this.closePartPanel();
-                        this.openPartPanel(slot);
-                    } else {
-                        this.sound.play('error', { volume: GameState.getSfxVolume() });
-                    }
-                });
-                container.add(unlockBtn);
             }
         });
 
@@ -415,8 +397,7 @@ export class BuildScene extends Scene {
 
     private launch() {
         const hasEngine = !!GameState.rocketConfig.engine;
-        const overBudget = GameState.getBudgetUsed() > BUILD_BUDGET;
-        if (!hasEngine || overBudget) return;
+        if (!hasEngine) return;
 
         this.scene.start('FlightScene');
     }

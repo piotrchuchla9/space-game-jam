@@ -48,7 +48,6 @@ const SECTIONS: Section[] = [
         iconColorHex: HEX.accentPink,
         lines: [
             'Pick: NOSE · BODY · ENGINE · L/R modules.',
-            'Budget is limited — stay within 100 pts.',
             'More powerful engines burn more fuel.',
             'Spend gears to unlock better parts.',
         ],

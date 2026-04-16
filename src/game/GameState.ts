@@ -96,18 +96,6 @@ class GameStateClass {
         return true;
     }
 
-    getBudgetUsed(): number {
-        let total = 0;
-        const slots = ['nose', 'body', 'engine', 'sides'] as const;
-        for (const slot of slots) {
-            const partId = this.rocketConfig[slot];
-            if (partId && PARTS[partId]) {
-                total += PARTS[partId].budgetCost;
-            }
-        }
-        return total;
-    }
-
     finishRun(altitude: number, gears: number, time: number = 0, maxSpeed: number = 0) {
         const score = Math.floor(altitude) + gears * 10;
         this.lastRun = { altitude: Math.floor(altitude), gears, score, time, maxSpeed };
