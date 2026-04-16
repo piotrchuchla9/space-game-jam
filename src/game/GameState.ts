@@ -7,7 +7,8 @@ export interface RocketConfig {
     nose: string;
     body: string;
     engine: string;
-    sides: string | null;
+    wings: string | null;
+    fuel: string | null;
 }
 
 export interface LastRun {
@@ -53,7 +54,8 @@ class GameStateClass {
         nose: 'nose_1',
         body: 'body_9',
         engine: 'eng_3',
-        sides: null,
+        wings: null,
+        fuel: null,
     };
 
     lastRun: LastRun = {

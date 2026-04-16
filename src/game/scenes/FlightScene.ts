@@ -563,7 +563,6 @@ export class FlightScene extends Scene {
     const body1Y = topY + noseH + bodyH / 2;
     const body2Y = topY + noseH + bodyH * 1.5;
     const body3Y = topY + noseH + bodyH * 2.5;
-    const bodySectionMidY = topY + noseH + totalBodyH / 2;
     const engCenterY = topY + noseH + totalBodyH + engH / 2;
 
     const noseImg = this.add.image(0, noseCenterY, noseAsset).setScale(SCALE);
@@ -580,20 +579,28 @@ export class FlightScene extends Scene {
       engImg,
     ];
 
-    if (cfg.sides && PARTS[cfg.sides]?.asset) {
-      const sideAsset = PARTS[cfg.sides].asset!;
-      const bodyW = frameW(bodyAsset) * SCALE;
-      const sideW = frameW(sideAsset) * SCALE;
-      const sideX = bodyW / 2 + sideW / 2;
+    const bodyW = frameW(bodyAsset) * SCALE;
 
-      const sidesL = this.add
-        .image(-sideX, bodySectionMidY, sideAsset)
-        .setScale(SCALE)
-        .setFlipX(true);
-      const sidesR = this.add
-        .image(sideX, bodySectionMidY, sideAsset)
-        .setScale(SCALE);
-      children.push(sidesL, sidesR);
+    if (cfg.wings && PARTS[cfg.wings]?.asset) {
+      const wingsAsset = PARTS[cfg.wings].asset!;
+      const wingsW = frameW(wingsAsset) * SCALE;
+      const wingsX = bodyW / 2 + wingsW / 2;
+
+      children.push(
+        this.add.image(-wingsX, body3Y, wingsAsset).setScale(SCALE).setFlipX(true),
+        this.add.image( wingsX, body3Y, wingsAsset).setScale(SCALE),
+      );
+    }
+
+    if (cfg.fuel && PARTS[cfg.fuel]?.asset) {
+      const fuelAsset = PARTS[cfg.fuel].asset!;
+      const fuelW = frameW(fuelAsset) * SCALE;
+      const fuelX = bodyW / 2 + fuelW / 2 - 10;
+
+      children.push(
+        this.add.image(-fuelX, body1Y, fuelAsset).setScale(SCALE).setFlipX(true),
+        this.add.image( fuelX, body1Y, fuelAsset).setScale(SCALE),
+      );
     }
 
     return this.add.container(x, y, children);

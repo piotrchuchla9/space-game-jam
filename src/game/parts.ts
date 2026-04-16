@@ -1,4 +1,4 @@
-export type SlotType = "nose" | "body" | "engine" | "sides";
+export type SlotType = "nose" | "body" | "engine" | "wings" | "fuel";
 
 export interface PartDef {
   id: string;
@@ -210,67 +210,76 @@ export const PARTS: Record<string, PartDef> = {
     fuelBurn: 1,
   },
 
-  // --- SIDES ---
-  // Wings: rotationDamping — higher = more stable flight
-  // Fuel Pods: bonusFuel on top of BASE_FUEL=20
+  // --- WINGS --- control bonus stacks on top of engine control
   sides_24: {
     id: "sides_24",
     name: "Small Wing",
-    slot: "sides",
+    slot: "wings",
     weight: 1,
     unlockCost: 10,
     asset: "rp_024",
-    rotationDamping: 0.4,
+    control: 0.15,
   },
+  sides_25: {
+    id: "sides_25",
+    name: "Standard Wing",
+    slot: "wings",
+    weight: 1,
+    unlockCost: 20,
+    asset: "rp_025",
+    control: 0.3,
+  },
+  sides_26: {
+    id: "sides_26",
+    name: "Wide Wing",
+    slot: "wings",
+    weight: 2,
+    unlockCost: 30,
+    asset: "rp_026",
+    control: 0.45,
+  },
+  sides_27: {
+    id: "sides_27",
+    name: "Large Wing",
+    slot: "wings",
+    weight: 2,
+    unlockCost: 40,
+    asset: "rp_027",
+    control: 0.6,
+  },
+  sides_28: {
+    id: "sides_28",
+    name: "Delta Wing",
+    slot: "wings",
+    weight: 3,
+    unlockCost: 50,
+    asset: "rp_028",
+    control: 0.75,
+  },
+
+  // --- FUEL --- bonusFuel on top of BASE_FUEL=20
   sides_20: {
     id: "sides_20",
     name: "Fuel Pod S",
-    slot: "sides",
+    slot: "fuel",
     weight: 1,
     unlockCost: 20,
     asset: "rp_020",
     bonusFuel: 15,
   },
-  sides_25: {
-    id: "sides_25",
-    name: "Standard Wing",
-    slot: "sides",
-    weight: 1,
-    unlockCost: 20,
-    asset: "rp_025",
-    rotationDamping: 0.55,
-  },
-  sides_26: {
-    id: "sides_26",
-    name: "Wide Wing",
-    slot: "sides",
-    weight: 2,
-    unlockCost: 30,
-    asset: "rp_026",
-    rotationDamping: 0.65,
-  },
   sides_21: {
     id: "sides_21",
     name: "Fuel Pod M",
-    slot: "sides",
+    slot: "fuel",
     weight: 2,
     unlockCost: 35,
     asset: "rp_021",
     bonusFuel: 25,
   },
-  sides_27: {
-    id: "sides_27",
-    name: "Large Wing",
-    slot: "sides",
-    weight: 2,
-    unlockCost: 40,
-    asset: "rp_027",
-    rotationDamping: 0.75,
-  },
   sides_23: {
     id: "sides_23",
     name: "Booster Pod",
-    slot: "sides",
+    slot: "fuel",
     weight: 2,
     unlockCost: 45,
     asset: "rp_023",
@@ -279,20 +288,11 @@ export const PARTS: Record<string, PartDef> = {
   sides_22: {
     id: "sides_22",
     name: "Fuel Pod L",
-    slot: "sides",
+    slot: "fuel",
     weight: 3,
     unlockCost: 50,
     asset: "rp_022",
     bonusFuel: 35,
-  },
-  sides_28: {
-    id: "sides_28",
-    name: "Delta Wing",
-    slot: "sides",
-    weight: 3,
-    unlockCost: 50,
-    asset: "rp_028",
-    rotationDamping: 0.85,
   },
 };
 

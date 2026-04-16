@@ -39,10 +39,11 @@ export class Rocket {
     const nose = PARTS[this.config.nose];
     const body = PARTS[this.config.body];
     const engine = PARTS[this.config.engine];
-    const sidesMod = this.config.sides ? PARTS[this.config.sides] : null;
+    const wingsMod = this.config.wings ? PARTS[this.config.wings] : null;
+    const fuelMod  = this.config.fuel  ? PARTS[this.config.fuel]  : null;
 
     this.thrust = engine.thrust ?? 5;
-    this.control = engine.control ?? 0.8;
+    this.control = (engine.control ?? 0.8) + (wingsMod?.control ?? 0);
     this.fuelBurn = engine.fuelBurn ?? 1.0;
     this.dragMultiplier = nose.drag ?? 1.0;
 
@@ -50,31 +51,27 @@ export class Rocket {
     this.shieldRating = body?.shield ?? 0;
     this.shieldHP = this.shieldRating; // each shield point = one absorbed hit
 
-    // Module bonuses (sides is symmetric, applied once)
-    let bonusFuel = 0;
+    // Module bonuses
+    let bonusFuel = fuelMod?.bonusFuel ?? 0;
     this.angularDamping = 0.01; // base
     this.hasMagnet = false;
-
-    if (sidesMod) {
-      if (sidesMod.bonusFuel) bonusFuel += sidesMod.bonusFuel;
-      if (sidesMod.rotationDamping)
-        this.angularDamping = sidesMod.rotationDamping;
-    }
 
     this.maxFuel = BASE_FUEL + bonusFuel;
     this.fuel = this.maxFuel;
 
-    // Weight: sides count twice (one on each side visually)
-    const sidesWeight = (sidesMod?.weight ?? 0) * 2;
+    // Weight: wings count twice (symmetric); fuel pods also count twice
+    const wingsWeight = (wingsMod?.weight ?? 0) * 2;
+    const fuelWeight  = (fuelMod?.weight  ?? 0) * 2;
     const totalWeight =
       (nose.weight ?? 0) +
       (body.weight ?? 0) +
       (engine.weight ?? 0) +
-      sidesWeight;
+      wingsWeight +
+      fuelWeight;
 
-    // Create physics body — compound when sides are equipped so wings/pods register hits
-    if (sidesMod?.asset) {
-      const sideSrc = this.scene.textures.get(sidesMod.asset).source[0];
+    // Create physics body — compound when wings are equipped so they register hits
+    if (wingsMod?.asset) {
+      const sideSrc = this.scene.textures.get(wingsMod.asset).source[0];
       const SCALE = 0.45;
       const sideW = (sideSrc?.width ?? 40) * SCALE;
       const sideH = (sideSrc?.height ?? 80) * SCALE;
