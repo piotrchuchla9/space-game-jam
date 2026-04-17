@@ -221,13 +221,26 @@ export class HUDScene extends Scene {
       ease: "Sine.easeOut",
     });
 
-    this.tweens.add({
+    const pulse = this.tweens.add({
       targets: title,
       scale: { from: 1, to: 1.06 },
       duration: 1200,
       yoyo: true,
       repeat: -1,
       ease: "Sine.easeInOut",
+    });
+
+    this.time.delayedCall(3000, () => {
+      this.tweens.add({
+        targets: group,
+        alpha: 0,
+        duration: 600,
+        ease: "Sine.easeIn",
+        onComplete: () => {
+          pulse.stop();
+          group.forEach((g) => g.destroy());
+        },
+      });
     });
   }
 
