@@ -331,7 +331,11 @@ export class FlightScene extends Scene {
     // Endgame trigger at 50k
     if (!this.endgameShown && this.altitude >= 50000) {
       this.endgameShown = true;
-      this.events.emit("endgameReached");
+      const elapsedSeconds = this.timerStarted
+        ? (this.time.now - this.launchTime) / 1000
+        : 0;
+      GameState.submitMoonTime(elapsedSeconds);
+      this.events.emit("endgameReached", { time: elapsedSeconds });
     }
 
     // Zone manager update (spawning gears/obstacles)

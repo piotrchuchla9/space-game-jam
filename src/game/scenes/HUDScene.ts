@@ -142,7 +142,8 @@ export class HUDScene extends Scene {
     };
     flightScene.events.on("updateHUD", this.hudUpdateHandler, this);
 
-    const endgameHandler = () => this.showEndgameOverlay();
+    const endgameHandler = (data?: { time?: number }) =>
+      this.showEndgameOverlay(data?.time ?? 0);
     flightScene.events.on("endgameReached", endgameHandler, this);
 
     // Clean up the cross-scene listener when this scene shuts down
@@ -170,16 +171,16 @@ export class HUDScene extends Scene {
     this.checkPendingAchievements();
   }
 
-  private showEndgameOverlay() {
+  private showEndgameOverlay(timeSeconds: number) {
     const cx = this.cameras.main.width / 2;
     const cy = this.cameras.main.height / 2 - 80;
 
     const backdrop = this.add
-      .rectangle(cx, cy, 680, 260, 0x000000, 0.45)
+      .rectangle(cx, cy, 680, 300, 0x000000, 0.45)
       .setStrokeStyle(2, 0xffcc00);
 
     const title = this.add
-      .text(cx, cy - 80, "CONGRATULATIONS!", {
+      .text(cx, cy - 100, "CONGRATULATIONS!", {
         fontSize: "40px",
         color: "#ffcc00",
         fontFamily: FONT,
@@ -190,7 +191,7 @@ export class HUDScene extends Scene {
       .setOrigin(0.5);
 
     const line2 = this.add
-      .text(cx, cy - 20, "YOU HAVE REACHED THE MOON", {
+      .text(cx, cy - 40, "YOU HAVE REACHED THE MOON", {
         fontSize: "22px",
         color: "#ffffff",
         fontFamily: FONT,
@@ -200,8 +201,19 @@ export class HUDScene extends Scene {
       })
       .setOrigin(0.5);
 
+    const timeText = this.add
+      .text(cx, cy + 10, `TIME: ${timeSeconds.toFixed(2)} s`, {
+        fontSize: "26px",
+        color: "#ffcc00",
+        fontFamily: FONT,
+        stroke: "#0a0a1e",
+        strokeThickness: 5,
+        align: "center",
+      })
+      .setOrigin(0.5);
+
     const line3 = this.add
-      .text(cx, cy + 50, "KEEP GRINDING", {
+      .text(cx, cy + 70, "KEEP GRINDING", {
         fontSize: "28px",
         color: "#4ad8ff",
         fontFamily: FONT,
@@ -211,7 +223,7 @@ export class HUDScene extends Scene {
       })
       .setOrigin(0.5);
 
-    const group = [backdrop, title, line2, line3];
+    const group = [backdrop, title, line2, timeText, line3];
     group.forEach((g) => g.setAlpha(0));
 
     this.tweens.add({

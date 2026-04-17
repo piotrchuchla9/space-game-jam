@@ -121,6 +121,20 @@ class GameStateClass {
         }
     }
 
+    async submitMoonTime(timeSeconds: number) {
+        if (typeof WavedashJS === 'undefined' || !this.wavedashReady) return;
+        try {
+            // sortOrder=0 → ascending (shortest time first)
+            // displayType=2 → milliseconds (formatted as time on the leaderboard UI)
+            const resp = await WavedashJS.getOrCreateLeaderboard('time-to-moon-v2', 0, 2);
+            // Score stored as milliseconds — matches displayType=2 formatting
+            const ms = Math.max(1, Math.round(timeSeconds * 1000));
+            await WavedashJS.uploadLeaderboardScore(resp.data.id, ms, true);
+        } catch (e) {
+            console.warn('Wavedash time-to-moon leaderboard submit failed:', e);
+        }
+    }
+
     private async submitToLeaderboard(altitude: number, gears: number, maxSpeed: number) {
         if (typeof WavedashJS === 'undefined' || !this.wavedashReady) return;
         try {
