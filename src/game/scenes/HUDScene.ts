@@ -142,9 +142,13 @@ export class HUDScene extends Scene {
     };
     flightScene.events.on("updateHUD", this.hudUpdateHandler, this);
 
+    const endgameHandler = () => this.showEndgameOverlay();
+    flightScene.events.on("endgameReached", endgameHandler, this);
+
     // Clean up the cross-scene listener when this scene shuts down
     this.events.on("shutdown", () => {
       flightScene.events.off("updateHUD", this.hudUpdateHandler as Function, this);
+      flightScene.events.off("endgameReached", endgameHandler, this);
     });
 
     this.time.addEvent({
@@ -164,6 +168,67 @@ export class HUDScene extends Scene {
     });
 
     this.checkPendingAchievements();
+  }
+
+  private showEndgameOverlay() {
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2 - 80;
+
+    const backdrop = this.add
+      .rectangle(cx, cy, 680, 260, 0x000000, 0.45)
+      .setStrokeStyle(2, 0xffcc00);
+
+    const title = this.add
+      .text(cx, cy - 80, "CONGRATULATIONS!", {
+        fontSize: "40px",
+        color: "#ffcc00",
+        fontFamily: FONT,
+        stroke: "#0a0a1e",
+        strokeThickness: 6,
+        align: "center",
+      })
+      .setOrigin(0.5);
+
+    const line2 = this.add
+      .text(cx, cy - 20, "YOU HAVE REACHED THE MOON", {
+        fontSize: "22px",
+        color: "#ffffff",
+        fontFamily: FONT,
+        stroke: "#0a0a1e",
+        strokeThickness: 5,
+        align: "center",
+      })
+      .setOrigin(0.5);
+
+    const line3 = this.add
+      .text(cx, cy + 50, "KEEP GRINDING", {
+        fontSize: "28px",
+        color: "#4ad8ff",
+        fontFamily: FONT,
+        stroke: "#0a0a1e",
+        strokeThickness: 5,
+        align: "center",
+      })
+      .setOrigin(0.5);
+
+    const group = [backdrop, title, line2, line3];
+    group.forEach((g) => g.setAlpha(0));
+
+    this.tweens.add({
+      targets: group,
+      alpha: 1,
+      duration: 700,
+      ease: "Sine.easeOut",
+    });
+
+    this.tweens.add({
+      targets: title,
+      scale: { from: 1, to: 1.06 },
+      duration: 1200,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
   }
 
   private checkPendingAchievements() {

@@ -25,6 +25,8 @@ export class FlightScene extends Scene {
   private shieldBubble!: Phaser.GameObjects.Graphics;
   private thrusterSound!: Phaser.Sound.BaseSound;
   private fuelAlertSound!: Phaser.Sound.BaseSound;
+  private moonSprite?: Phaser.GameObjects.Image;
+  private endgameShown: boolean = false;
 
   constructor() {
     super("FlightScene");
@@ -48,6 +50,7 @@ export class FlightScene extends Scene {
     this.load.audio("storm", "assets/storm.mp3");
     this.load.image("meteor", "assets/meteor.png");
     this.load.audio("meteor", "assets/meteor.mp3");
+    this.load.image("moon", "assets/planets/moon.png");
 
     this.load.image("station_003", "assets/station_005.png");
 
@@ -70,6 +73,7 @@ export class FlightScene extends Scene {
     this.crashed = false;
     this.launchTime = 0;
     this.timerStarted = false;
+    this.endgameShown = false;
 
     // World bounds — wide and tall
     this.matter.world.setBounds(
@@ -248,6 +252,14 @@ export class FlightScene extends Scene {
     this.shieldBubble.setVisible(false);
     this.shieldBubble.setDepth(10);
 
+    // Moon — background body that reveals itself as rocket climbs into space.
+    // Placed above the top of the playable world so camera naturally frames it near 50k.
+    this.moonSprite = this.add
+      .image(360, -50800, "moon")
+      .setDepth(-4)
+      .setScale(2.2)
+      .setAlpha(0);
+
     this.thrusterSound = this.sound.add("thrusterFire", {
       loop: true,
       volume: GameState.getSfxVolume(),
@@ -306,6 +318,20 @@ export class FlightScene extends Scene {
     this.altitude = alt;
     if (this.altitude > this.maxAltitude) {
       this.maxAltitude = this.altitude;
+    }
+
+    // Moon reveal: fade in progressively between 35k and 48k as rocket climbs
+    if (this.moonSprite) {
+      const moonStart = 35000;
+      const moonFull = 48000;
+      const t = Math.max(0, Math.min(1, (this.altitude - moonStart) / (moonFull - moonStart)));
+      this.moonSprite.setAlpha(t);
+    }
+
+    // Endgame trigger at 50k
+    if (!this.endgameShown && this.altitude >= 50000) {
+      this.endgameShown = true;
+      this.events.emit("endgameReached");
     }
 
     // Zone manager update (spawning gears/obstacles)
@@ -706,6 +732,8 @@ export class FlightScene extends Scene {
       if (this.fuelAlertSound.isPlaying) this.fuelAlertSound.stop();
       this.flameSprites.forEach((f) => f.destroy());
       this.shieldBubble.destroy();
+      this.moonSprite?.destroy();
+      this.moonSprite = undefined;
       this.flameSprites = [];
       this.inputManager.destroy();
       this.rocket.destroy();
