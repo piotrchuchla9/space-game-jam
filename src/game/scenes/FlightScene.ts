@@ -348,6 +348,19 @@ export class FlightScene extends Scene {
       this.rocket,
     );
 
+    // Snapshot znajdźków w zasięgu radaru
+    const minimapRange = 1000;
+    const minimapItems = this.zoneManager.getMinimapItems(
+      this.rocket.body.position.x,
+      this.rocket.body.position.y,
+      minimapRange,
+    );
+    this.events.emit('updateMinimap', {
+      rocketX: this.rocket.body.position.x,
+      rocketY: this.rocket.body.position.y,
+      items: minimapItems,
+    });
+
     // Emit HUD update
     const vel = this.rocket.body.velocity;
     const speed = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
