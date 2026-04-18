@@ -1,5 +1,5 @@
 import { PARTS } from './parts';
-import { checkAchievements } from './systems/AchievementManager';
+import { ACHIEVEMENTS, checkAchievements } from './systems/AchievementManager';
 
 const STORAGE_KEY = 'rocketbuilder_save';
 
@@ -24,6 +24,7 @@ interface SaveData {
     highscore: number;
     unlockedParts: string[];
     unlockedAchievements: string[];
+    claimedAchievements?: string[];
     musicVolume?: number;
     sfxVolume?: number;
     musicMuted?: boolean;
@@ -36,6 +37,7 @@ class GameStateClass {
     unlockedParts: string[] = [];
     wavedashReady: boolean = false;
     unlockedAchievements: string[] = [];
+    claimedAchievements: string[] = [];
     pendingAchievementNotifications: string[] = [];
     musicVolume: number = 0.5;
     sfxVolume: number = 0.5;
@@ -84,6 +86,17 @@ class GameStateClass {
 
     isUnlocked(partId: string): boolean {
         return this.unlockedParts.includes(partId);
+    }
+
+    claimAchievement(id: string): number | null {
+        if (!this.unlockedAchievements.includes(id)) return null;
+        if (this.claimedAchievements.includes(id)) return null;
+        const def = ACHIEVEMENTS.find(a => a.id === id);
+        if (!def) return null;
+        this.currency += def.reward;
+        this.claimedAchievements.push(id);
+        this.save();
+        return def.reward;
     }
 
     unlockPart(partId: string): boolean {
@@ -163,6 +176,7 @@ class GameStateClass {
             highscore: this.highscore,
             unlockedParts: this.unlockedParts,
             unlockedAchievements: this.unlockedAchievements,
+            claimedAchievements: this.claimedAchievements,
             musicVolume: this.musicVolume,
             sfxVolume: this.sfxVolume,
             musicMuted: this.musicMuted,
@@ -180,6 +194,7 @@ class GameStateClass {
             this.highscore = data.highscore ?? 0;
             this.unlockedParts = data.unlockedParts ?? [];
             this.unlockedAchievements = data.unlockedAchievements ?? [];
+            this.claimedAchievements = data.claimedAchievements ?? [];
             this.musicVolume = data.musicVolume ?? 0.5;
             this.sfxVolume = data.sfxVolume ?? 0.5;
             this.musicMuted = data.musicMuted ?? false;
@@ -195,6 +210,7 @@ class GameStateClass {
         this.highscore = 0;
         this.unlockedParts = [];
         this.unlockedAchievements = [];
+        this.claimedAchievements = [];
         this.pendingAchievementNotifications = [];
         this.initDefaultUnlocks();
     }

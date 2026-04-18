@@ -3,18 +3,19 @@ export interface AchievementDef {
   name: string;
   altitudeThreshold?: number;
   gearsThreshold?: number;
+  reward: number;
 }
 
 export const ACHIEVEMENTS: AchievementDef[] = [
-  { id: 'alt-5000', name: 'Sky High', altitudeThreshold: 5000 },
-  { id: 'enter-space', name: 'Space Explorer', altitudeThreshold: 15000 },
-  { id: 'alt-10000', name: 'Cloud Breaker', altitudeThreshold: 10000 },
-  { id: 'alt-20000', name: 'Stratosphere', altitudeThreshold: 20000 },
-  { id: 'alt-50000', name: 'Orbit Reached', altitudeThreshold: 50000 },
-  { id: 'alt-100000', name: 'To The Moon', altitudeThreshold: 100000 },
-  { id: 'gears-10', name: 'Gear Collector', gearsThreshold: 10 },
-  { id: 'gears-50', name: 'Gear Hoarder', gearsThreshold: 50 },
-  { id: 'gears-100', name: 'Gear Tycoon', gearsThreshold: 100 },
+  { id: 'alt-5000', name: 'Sky High', altitudeThreshold: 5000, reward: 5 },
+  { id: 'enter-space', name: 'Space Explorer', altitudeThreshold: 15000, reward: 15 },
+  { id: 'alt-10000', name: 'Cloud Breaker', altitudeThreshold: 10000, reward: 10 },
+  { id: 'alt-20000', name: 'Stratosphere', altitudeThreshold: 20000, reward: 20 },
+  { id: 'alt-50000', name: 'Orbit Reached', altitudeThreshold: 50000, reward: 50 },
+  { id: 'alt-100000', name: 'To The Moon', altitudeThreshold: 100000, reward: 100 },
+  { id: 'gears-10', name: 'Gear Collector', gearsThreshold: 10, reward: 5 },
+  { id: 'gears-50', name: 'Gear Hoarder', gearsThreshold: 50, reward: 25 },
+  { id: 'gears-100', name: 'Gear Tycoon', gearsThreshold: 100, reward: 50 },
 ];
 
 export function checkAchievements(

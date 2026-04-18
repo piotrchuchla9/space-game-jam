@@ -1,6 +1,6 @@
-import { Scene } from 'phaser';
+import { GameObjects, Scene } from 'phaser';
 import { GameState } from '../GameState';
-import { ACHIEVEMENTS } from '../systems/AchievementManager';
+import { ACHIEVEMENTS, AchievementDef } from '../systems/AchievementManager';
 import { StarfieldBackground } from '../ui/StarfieldBackground';
 import { CartoonButton } from '../ui/CartoonButton';
 import { warpIn, warpOut } from '../ui/SceneTransition';
@@ -44,6 +44,7 @@ export class AchievementsScene extends Scene {
         ACHIEVEMENTS.forEach((ach, i) => {
             const y = startY + i * spacing;
             const unlocked = GameState.unlockedAchievements.includes(ach.id);
+            const claimed = GameState.claimedAchievements.includes(ach.id);
 
             const card = this.add.container(800, y);
             const bgColor = unlocked ? COLORS.paper : COLORS.bgMid;
@@ -96,6 +97,8 @@ export class AchievementsScene extends Scene {
             }).setOrigin(0, 0.5);
             card.add(descText);
 
+            this.addRewardControl(card, ach, unlocked, claimed);
+
             this.tweens.add({
                 targets: card,
                 x: cx,
@@ -105,6 +108,88 @@ export class AchievementsScene extends Scene {
             });
         });
 
+        this.addBackButton(cx);
+    }
+
+    private addRewardControl(card: GameObjects.Container, ach: AchievementDef, unlocked: boolean, claimed: boolean) {
+        const bx = 210;
+        const bw = 150;
+        const bh = 56;
+
+        if (claimed) {
+            const txt = this.add.text(bx, 0, `CLAIMED ✓`, {
+                fontFamily: 'KenneyFuture, sans-serif',
+                fontSize: '18px',
+                color: HEX.accentCyan,
+                stroke: HEX.ink,
+                strokeThickness: 3,
+            }).setOrigin(0.5);
+            card.add(txt);
+            return;
+        }
+
+        if (!unlocked) {
+            const txt = this.add.text(bx, 0, `+${ach.reward} ⚙`, {
+                fontFamily: 'KenneyFuture, sans-serif',
+                fontSize: '22px',
+                color: '#888',
+                stroke: HEX.ink,
+                strokeThickness: 2,
+            }).setOrigin(0.5);
+            card.add(txt);
+            return;
+        }
+
+        const btn = this.add.container(bx, 0);
+        const bg = this.add.graphics();
+        const drawBtn = (offset: number) => {
+            bg.clear();
+            bg.fillStyle(COLORS.ink, 0.9);
+            bg.fillRoundedRect(-bw / 2, -bh / 2 + 5, bw, bh, 14);
+            bg.fillStyle(COLORS.accentWarm, 1);
+            bg.fillRoundedRect(-bw / 2, -bh / 2 + offset, bw, bh, 14);
+            bg.lineStyle(3, COLORS.ink, 1);
+            bg.strokeRoundedRect(-bw / 2, -bh / 2 + offset, bw, bh, 14);
+        };
+        drawBtn(0);
+        const btnLabel = this.add.text(0, 0, `CLAIM +${ach.reward} ⚙`, {
+            fontFamily: 'KenneyFuture, sans-serif',
+            fontSize: '16px',
+            color: HEX.ink,
+            stroke: HEX.paper,
+            strokeThickness: 2,
+        }).setOrigin(0.5);
+        const hit = this.add.rectangle(0, 0, bw, bh, 0x000000, 0).setInteractive({ useHandCursor: true });
+        btn.add([bg, btnLabel, hit]);
+        card.add(btn);
+
+        hit.on('pointerover', () => {
+            this.tweens.add({ targets: btn, scale: 1.06, duration: 100 });
+            drawBtn(-3);
+        });
+        hit.on('pointerout', () => {
+            this.tweens.add({ targets: btn, scale: 1, duration: 100 });
+            drawBtn(0);
+        });
+        hit.on('pointerdown', () => drawBtn(3));
+        hit.on('pointerup', () => {
+            const reward = GameState.claimAchievement(ach.id);
+            if (reward === null) return;
+            this.sound.play('buy', { volume: GameState.getSfxVolume() });
+            btn.destroy();
+            const txt = this.add.text(bx, 0, `CLAIMED ✓`, {
+                fontFamily: 'KenneyFuture, sans-serif',
+                fontSize: '18px',
+                color: HEX.accentCyan,
+                stroke: HEX.ink,
+                strokeThickness: 3,
+            }).setOrigin(0.5).setScale(0);
+            card.add(txt);
+            this.tweens.add({ targets: txt, scale: 1, duration: 300, ease: 'Back.easeOut' });
+        });
+    }
+
+    private addBackButton(cx: number) {
         new CartoonButton(this, cx, 1180, '< BACK', {
             variant: 'ghost', width: 220, height: 64, fontSize: 24,
             onClick: () => {
