@@ -1,6 +1,8 @@
 import { Scene, GameObjects } from "phaser";
 import { GameState } from "../GameState";
 import { getAchievementName } from "../systems/AchievementManager";
+import { Minimap } from "../ui/Minimap";
+import type { MinimapItem } from "../systems/ZoneManager";
 
 const FONT = "KenneyFuture";
 
@@ -14,6 +16,8 @@ export class HUDScene extends Scene {
   private notificationQueue: string[] = [];
   private isShowingNotification: boolean = false;
   private hudUpdateHandler?: Function;
+  private minimap!: Minimap;
+  private minimapUpdateHandler?: Function;
 
   constructor() {
     super("HUDScene");
@@ -97,6 +101,9 @@ export class HUDScene extends Scene {
       .rectangle(549, 36, 130, 14, 0x44ff44)
       .setOrigin(0, 0.5);
 
+    // Minimap — prawy górny róg pod panelem FUEL
+    this.minimap = new Minimap(this, 614, 150, 120, 180, 1000);
+
     // Self-destruct button (bottom-right)
     const flightScene = this.scene.get("FlightScene");
     const sdBg = this.add
@@ -142,6 +149,15 @@ export class HUDScene extends Scene {
     };
     flightScene.events.on("updateHUD", this.hudUpdateHandler, this);
 
+    this.minimapUpdateHandler = (data: {
+      rocketX: number;
+      rocketY: number;
+      items: MinimapItem[];
+    }) => {
+      this.minimap.update(data.rocketX, data.rocketY, data.items);
+    };
+    flightScene.events.on("updateMinimap", this.minimapUpdateHandler, this);
+
     const endgameHandler = (data?: { time?: number }) =>
       this.showEndgameOverlay(data?.time ?? 0);
     flightScene.events.on("endgameReached", endgameHandler, this);
@@ -149,7 +165,9 @@ export class HUDScene extends Scene {
     // Clean up the cross-scene listener when this scene shuts down
     this.events.on("shutdown", () => {
       flightScene.events.off("updateHUD", this.hudUpdateHandler as Function, this);
+      flightScene.events.off("updateMinimap", this.minimapUpdateHandler as Function, this);
       flightScene.events.off("endgameReached", endgameHandler, this);
+      this.minimap?.destroy();
     });
 
     this.time.addEvent({

@@ -7,6 +7,12 @@ import { spawnShield } from '../objects/Shield';
 import { spawnStormObstacle } from '../objects/StormObstacle';
 import { spawnMeteorObstacle } from '../objects/MeteorObstacle';
 
+export type MinimapItem = {
+    x: number;
+    y: number;
+    type: 'gear' | 'canister' | 'flame' | 'shield';
+};
+
 interface SpawnedEntity {
     graphic: Phaser.GameObjects.Rectangle | Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
     body: MatterJS.BodyType;
@@ -357,6 +363,27 @@ export class ZoneManager {
             this.scene.matter.world.remove(this.flames[idx].body);
             this.flames.splice(idx, 1);
         }
+    }
+
+    getMinimapItems(rocketX: number, rocketY: number, range: number): MinimapItem[] {
+        const items: MinimapItem[] = [];
+        const inRange = (e: SpawnedEntity) =>
+            Math.abs(e.body.position.x - rocketX) <= range
+            && Math.abs(e.body.position.y - rocketY) <= range;
+
+        for (const g of this.gears) {
+            if (inRange(g)) items.push({ x: g.body.position.x, y: g.body.position.y, type: 'gear' });
+        }
+        for (const c of this.canisters) {
+            if (inRange(c)) items.push({ x: c.body.position.x, y: c.body.position.y, type: 'canister' });
+        }
+        for (const f of this.flames) {
+            if (inRange(f)) items.push({ x: f.body.position.x, y: f.body.position.y, type: 'flame' });
+        }
+        for (const s of this.shields) {
+            if (inRange(s)) items.push({ x: s.body.position.x, y: s.body.position.y, type: 'shield' });
+        }
+        return items;
     }
 
     destroy() {
