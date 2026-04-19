@@ -6,6 +6,15 @@ import { warpIn, warpOut } from '../ui/SceneTransition';
 import { title, label, panel } from '../ui/typography';
 import { COLORS, HEX } from '../ui/colors';
 
+const CHEAT_TOOLTIP = [
+    'CHEAT MODE:',
+    '- unlimited gears / all parts',
+    '- build any rocket setup',
+    '- no gears earned in flight',
+    '- excluded from achievements',
+    '- excluded from leaderboards',
+].join('\n');
+
 export class MenuScene extends Scene {
     private soundtrack!: Phaser.Sound.BaseSound;
 
@@ -91,7 +100,9 @@ export class MenuScene extends Scene {
             },
         });
 
-        this.createVolumeControl(cx, 1035, 'MUSIC', GameState.musicVolume, GameState.musicMuted,
+        this.createCheatButton(cx, 1015);
+
+        this.createVolumeControl(cx, 1075, 'MUSIC', GameState.musicVolume, GameState.musicMuted,
             (vol) => {
                 GameState.musicVolume = vol;
                 (this.soundtrack as unknown as { setVolume: (v: number) => void }).setVolume(GameState.getMusicVolume());
@@ -103,14 +114,56 @@ export class MenuScene extends Scene {
                 GameState.save();
             },
         );
-        this.createVolumeControl(cx, 1115, 'SFX', GameState.sfxVolume, GameState.sfxMuted,
+        this.createVolumeControl(cx, 1155, 'SFX', GameState.sfxVolume, GameState.sfxMuted,
             (vol) => { GameState.sfxVolume = vol; GameState.save(); },
             (muted) => { GameState.sfxMuted = muted; GameState.save(); },
         );
 
-        label(this, cx, 1200, 'GAMEDEV.JS JAM 2026 - MACHINES', 16, { color: HEX.accentLilac, strokeThickness: 0 });
+        label(this, cx, 1230, 'GAMEDEV.JS JAM 2026 - MACHINES', 16, { color: HEX.accentLilac, strokeThickness: 0 });
 
         warpIn(this);
+    }
+
+    private createCheatButton(cx: number, y: number) {
+        const tooltipBg = this.add.graphics().setDepth(100).setVisible(false);
+        const tooltipText = this.add.text(cx, y - 130, CHEAT_TOOLTIP, {
+            fontFamily: '"Trebuchet MS", sans-serif',
+            fontSize: '14px',
+            color: HEX.paper,
+            align: 'center',
+            lineSpacing: 4,
+        }).setOrigin(0.5, 1).setDepth(101).setVisible(false);
+
+        const drawTooltip = () => {
+            const b = tooltipText.getBounds();
+            const pad = 12;
+            tooltipBg.clear();
+            tooltipBg.fillStyle(COLORS.ink, 0.92);
+            tooltipBg.fillRoundedRect(b.x - pad, b.y - pad, b.width + pad * 2, b.height + pad * 2, 10);
+            tooltipBg.lineStyle(3, COLORS.accentPink, 1);
+            tooltipBg.strokeRoundedRect(b.x - pad, b.y - pad, b.width + pad * 2, b.height + pad * 2, 10);
+        };
+
+        const btn = new CartoonButton(this, cx, y, GameState.cheatMode ? 'CHEAT: ON' : 'CHEAT', {
+            variant: GameState.cheatMode ? 'danger' : 'ghost',
+            width: 260, height: 52, fontSize: 22,
+            onClick: () => {
+                this.playClick();
+                GameState.cheatMode = !GameState.cheatMode;
+                GameState.save();
+                warpOut(this, () => this.scene.start('MenuScene'));
+            },
+            onHover: () => {
+                drawTooltip();
+                tooltipBg.setVisible(true);
+                tooltipText.setVisible(true);
+            },
+            onOut: () => {
+                tooltipBg.setVisible(false);
+                tooltipText.setVisible(false);
+            },
+        });
+        void btn;
     }
 
     private createVolumeControl(

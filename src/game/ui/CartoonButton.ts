@@ -11,6 +11,8 @@ export interface CartoonButtonOpts {
     fontSize?: number;
     wobble?: boolean;
     onClick?: () => void;
+    onHover?: () => void;
+    onOut?: () => void;
 }
 
 interface VariantStyle {
@@ -64,8 +66,8 @@ export class CartoonButton {
 
         this.container = scene.add.container(x, y, [this.shadow, this.body, this.text, this.hit]);
 
-        this.hit.on('pointerover', () => this.onHover());
-        this.hit.on('pointerout', () => this.onOut());
+        this.hit.on('pointerover', () => { this.onHover(); opts.onHover?.(); });
+        this.hit.on('pointerout', () => { this.onOut(); opts.onOut?.(); });
         this.hit.on('pointerdown', () => this.onDown());
         this.hit.on('pointerup', () => this.onUp(opts.onClick));
 

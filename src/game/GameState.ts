@@ -29,6 +29,7 @@ interface SaveData {
     sfxVolume?: number;
     musicMuted?: boolean;
     sfxMuted?: boolean;
+    cheatMode?: boolean;
 }
 
 class GameStateClass {
@@ -43,6 +44,7 @@ class GameStateClass {
     sfxVolume: number = 0.5;
     musicMuted: boolean = false;
     sfxMuted: boolean = false;
+    cheatMode: boolean = false;
 
     getMusicVolume(): number {
         return this.musicMuted ? 0 : this.musicVolume;
@@ -85,6 +87,7 @@ class GameStateClass {
     }
 
     isUnlocked(partId: string): boolean {
+        if (this.cheatMode) return true;
         return this.unlockedParts.includes(partId);
     }
 
@@ -114,6 +117,10 @@ class GameStateClass {
     finishRun(altitude: number, gears: number, time: number = 0, maxSpeed: number = 0) {
         const score = Math.floor(altitude) + gears * 10;
         this.lastRun = { altitude: Math.floor(altitude), gears, score, time, maxSpeed };
+        if (this.cheatMode) {
+            // Cheat: no currency, no highscore, no leaderboards, no achievements.
+            return;
+        }
         this.currency += gears;
         if (score > this.highscore) {
             this.highscore = score;
@@ -135,6 +142,7 @@ class GameStateClass {
     }
 
     async submitMoonTime(timeSeconds: number) {
+        if (this.cheatMode) return;
         if (typeof WavedashJS === 'undefined' || !this.wavedashReady) return;
         try {
             // sortOrder=0 → ascending (shortest time first)
@@ -181,6 +189,7 @@ class GameStateClass {
             sfxVolume: this.sfxVolume,
             musicMuted: this.musicMuted,
             sfxMuted: this.sfxMuted,
+            cheatMode: this.cheatMode,
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
@@ -199,6 +208,7 @@ class GameStateClass {
             this.sfxVolume = data.sfxVolume ?? 0.5;
             this.musicMuted = data.musicMuted ?? false;
             this.sfxMuted = data.sfxMuted ?? false;
+            this.cheatMode = data.cheatMode ?? false;
         } catch {
             // corrupted save, start fresh
         }
