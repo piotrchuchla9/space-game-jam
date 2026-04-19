@@ -157,7 +157,7 @@ export class BuildScene extends Scene {
     }
 
     private refreshUI() {
-        this.gearsText.setText(`${GameState.currency}G`);
+        this.gearsText.setText(GameState.cheatMode ? '∞G' : `${GameState.currency}G`);
 
         const hasEngine = !!GameState.rocketConfig.engine;
         this.launchBtn.setEnabled(hasEngine);
