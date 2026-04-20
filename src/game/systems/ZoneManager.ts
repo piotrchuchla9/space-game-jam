@@ -44,6 +44,10 @@ export class ZoneManager {
     private spawnTimer: number = 0;
     private meteorTimer: number = 0;
     private elapsed: number = 0;
+    private endgameMeteorBatchCount: number = 0;
+    private meteorBurstRemaining: number = 0;
+    private meteorBurstTimer: number = 0;
+    private endgameCollectibleBatchCount: number = 0;
     private plannedSpawns: PlannedSpawn[] = [];
     private nextSpawnIndex: number = 0;
 
@@ -70,6 +74,28 @@ export class ZoneManager {
         if (altitude >= 15000) {
             if (this.meteorTimer >= 2000) {
                 this.meteorTimer = 0;
+                this.spawnMeteorNearRocket(altitude, rocketX);
+            }
+        }
+
+        // Endgame: burst of meteors + collectibles at each 10k milestone past the moon
+        if (altitude >= 50000) {
+            const newBatchCount = Math.floor((altitude - 50000) / 10000) + 1;
+            if (newBatchCount > this.endgameMeteorBatchCount) {
+                this.endgameMeteorBatchCount = newBatchCount;
+                this.meteorBurstRemaining = 10;
+                this.meteorBurstTimer = 0;
+            }
+            if (newBatchCount > this.endgameCollectibleBatchCount) {
+                this.endgameCollectibleBatchCount = newBatchCount;
+                this.generateEndgameCollectibleBatch(newBatchCount);
+            }
+        }
+        if (this.meteorBurstRemaining > 0) {
+            this.meteorBurstTimer += delta;
+            if (this.meteorBurstTimer >= 400) {
+                this.meteorBurstTimer = 0;
+                this.meteorBurstRemaining--;
                 this.spawnMeteorNearRocket(altitude, rocketX);
             }
         }
@@ -202,6 +228,22 @@ export class ZoneManager {
         }
 
         return spawns.sort((a, b) => a.altitude - b.altitude);
+    }
+
+    private generateEndgameCollectibleBatch(batchIndex: number): void {
+        const worldLeft = -2600;
+        const worldRight = 3560;
+        const batchStart = 50000 + (batchIndex - 1) * 10000;
+        const batchEnd = batchStart + 10000;
+        const rnd = () => worldLeft + Math.random() * (worldRight - worldLeft);
+        const alt = () => batchStart + Math.random() * (batchEnd - batchStart);
+
+        for (let i = 0; i < 20; i++) {
+            this.plannedSpawns.push({ altitude: alt(), x: rnd(), type: 'gear' });
+        }
+        for (let i = 0; i < 5; i++) {
+            this.plannedSpawns.push({ altitude: alt(), x: rnd(), type: 'flame' });
+        }
     }
 
     private instantiatePlannedSpawn(type: 'gear' | 'canister' | 'flame' | 'shield' | 'storm', x: number, y: number) {

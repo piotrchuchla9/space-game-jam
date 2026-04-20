@@ -30,10 +30,24 @@ export class ZoneAmbient {
 
     private plannedBlackHoles: { altitude: number; worldX: number }[] = [];
     private bhNextIndex: number = 0;
+    private endgameBhBatchCount: number = 0;
 
     constructor(scene: Scene) {
         this.scene = scene;
         this.plannedBlackHoles = this.generateBlackHoleMap();
+    }
+
+    private generateEndgameBhBatch(batchIndex: number): void {
+        const worldLeft = -2600;
+        const worldRight = 3560;
+        const batchStart = 50000 + (batchIndex - 1) * 10000;
+        const batchEnd = batchStart + 10000;
+        for (let i = 0; i < 6; i++) {
+            this.plannedBlackHoles.push({
+                altitude: batchStart + Math.random() * (batchEnd - batchStart),
+                worldX: worldLeft + Math.random() * (worldRight - worldLeft),
+            });
+        }
     }
 
     private generateBlackHoleMap(): { altitude: number; worldX: number }[] {
@@ -360,6 +374,14 @@ export class ZoneAmbient {
             if (bh.altitude > altitude + bhAheadWindow) break;
             this.spawnBlackHoleAt(bh.worldX, 1100 - bh.altitude);
             this.bhNextIndex++;
+        }
+
+        if (altitude >= 50000) {
+            const newBatchCount = Math.floor((altitude - 50000) / 10000) + 1;
+            if (newBatchCount > this.endgameBhBatchCount) {
+                this.endgameBhBatchCount = newBatchCount;
+                this.generateEndgameBhBatch(newBatchCount);
+            }
         }
 
         this.updateBlackHoles(delta, cameraY, rocket);
