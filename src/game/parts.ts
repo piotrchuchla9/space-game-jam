@@ -218,7 +218,7 @@ export const PARTS: Record<string, PartDef> = {
     weight: 1,
     unlockCost: 10,
     asset: "rp_024",
-    control: 0.15,
+    control: 0.2,
   },
   sides_25: {
     id: "sides_25",
@@ -227,7 +227,7 @@ export const PARTS: Record<string, PartDef> = {
     weight: 1,
     unlockCost: 20,
     asset: "rp_025",
-    control: 0.3,
+    control: 0.5,
   },
   sides_26: {
     id: "sides_26",
@@ -236,7 +236,7 @@ export const PARTS: Record<string, PartDef> = {
     weight: 2,
     unlockCost: 30,
     asset: "rp_026",
-    control: 0.45,
+    control: 1,
   },
   sides_27: {
     id: "sides_27",
@@ -245,7 +245,7 @@ export const PARTS: Record<string, PartDef> = {
     weight: 2,
     unlockCost: 40,
     asset: "rp_027",
-    control: 0.6,
+    control: 2,
   },
   sides_28: {
     id: "sides_28",
@@ -254,7 +254,7 @@ export const PARTS: Record<string, PartDef> = {
     weight: 3,
     unlockCost: 50,
     asset: "rp_028",
-    control: 0.75,
+    control: 5,
   },
 
   // --- FUEL --- bonusFuel on top of BASE_FUEL=20
