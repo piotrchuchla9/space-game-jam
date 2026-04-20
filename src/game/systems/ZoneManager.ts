@@ -29,7 +29,7 @@ interface SpawnedEntity {
 interface PlannedSpawn {
     altitude: number;
     x: number;
-    type: 'gear' | 'canister' | 'flame' | 'shield';
+    type: 'gear' | 'canister' | 'flame' | 'shield' | 'storm';
 }
 
 export class ZoneManager {
@@ -42,7 +42,6 @@ export class ZoneManager {
     private storms: SpawnedEntity[] = [];
     private meteors: SpawnedEntity[] = [];
     private spawnTimer: number = 0;
-    private stormTimer: number = 0;
     private meteorTimer: number = 0;
     private elapsed: number = 0;
     private plannedSpawns: PlannedSpawn[] = [];
@@ -55,7 +54,6 @@ export class ZoneManager {
 
     update(delta: number, altitude: number, rocketX: number) {
         this.spawnTimer += delta;
-        this.stormTimer += delta;
         this.meteorTimer += delta;
         this.elapsed += delta;
 
@@ -65,14 +63,6 @@ export class ZoneManager {
             if (this.spawnTimer >= spawnInterval) {
                 this.spawnTimer = 0;
                 this.spawnObstacleForZone(altitude, rocketX);
-            }
-        }
-
-        // Spawn storm obstacles — turbulence zone only
-        if (altitude >= 5000 && altitude < 15000) {
-            if (this.stormTimer >= 3500) {
-                this.stormTimer = 0;
-                this.spawnStormNearRocket(altitude, rocketX);
             }
         }
 
@@ -206,25 +196,22 @@ export class ZoneManager {
             spawns.push({ altitude: minAltitude + Math.random() * (maxAltitude - minAltitude), x: rnd(), type: 'shield' });
         }
 
+        // Storms: ~80 randomly placed in turbulence zone only
+        for (let i = 0; i < 80; i++) {
+            spawns.push({ altitude: 5000 + Math.random() * 10000, x: rnd(), type: 'storm' });
+        }
+
         return spawns.sort((a, b) => a.altitude - b.altitude);
     }
 
-    private instantiatePlannedSpawn(type: 'gear' | 'canister' | 'flame' | 'shield', x: number, y: number) {
+    private instantiatePlannedSpawn(type: 'gear' | 'canister' | 'flame' | 'shield' | 'storm', x: number, y: number) {
         switch (type) {
             case 'gear':     this.gears.push(spawnGear(this.scene, x, y)); break;
             case 'canister': this.canisters.push(spawnCanister(this.scene, x, y)); break;
             case 'flame':    this.flames.push(spawnFlame(this.scene, x, y)); break;
             case 'shield':   this.shields.push(spawnShield(this.scene, x, y)); break;
+            case 'storm':    this.storms.push(spawnStormObstacle(this.scene, x, y)); break;
         }
-    }
-
-    private spawnStormNearRocket(altitude: number, rocketX: number) {
-        const x = rocketX + (Math.random() - 0.5) * 600;
-        const rocketY = 1100 - altitude;
-        const y = rocketY - 500 - Math.random() * 600;
-
-        const entity = spawnStormObstacle(this.scene, x, y);
-        this.storms.push(entity);
     }
 
     private spawnMeteorNearRocket(altitude: number, rocketX: number) {
@@ -291,8 +278,7 @@ export class ZoneManager {
 
         this.storms = this.storms.filter(e => {
             if (!e.body.id) return false;
-            const dist = Math.abs(e.body.position.y - rocketY) + Math.abs(e.body.position.x - rocketX);
-            if (dist > maxDist) {
+            if (e.body.position.y > rocketY + 500) {
                 e.graphic.destroy();
                 this.scene.matter.world.remove(e.body);
                 return false;
