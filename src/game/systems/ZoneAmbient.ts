@@ -354,8 +354,7 @@ export class ZoneAmbient {
             this.spawnPlanet(cameraX, cameraY);
         }
 
-        // Lazy-spawn pre-planned black holes just ahead of the viewport (~800 altitude units = just above screen top)
-        const bhAheadWindow = 800;
+        const bhAheadWindow = 2500;
         while (this.bhNextIndex < this.plannedBlackHoles.length) {
             const bh = this.plannedBlackHoles[this.bhNextIndex];
             if (bh.altitude > altitude + bhAheadWindow) break;
@@ -422,8 +421,6 @@ export class ZoneAmbient {
             type: 'blackhole',
             ring,
             glow,
-            lifetime: 0,
-            maxLifetime: PhaserMath.Between(12000, 18000),
             forceSound,
         };
         this.activeElements.push(el);
@@ -443,13 +440,9 @@ export class ZoneAmbient {
                 e.ring.rotation += (0.4 * delta) / 1000;
             }
 
-            e.lifetime = (e.lifetime ?? 0) + delta;
-
-            // cull if offscreen or expired
-            const offscreen = container.y > cameraY + this.screenH + 300 || container.y < cameraY - 500;
-            const expired = (e.maxLifetime ?? 0) > 0 && (e.lifetime ?? 0) >= (e.maxLifetime ?? 0);
-            if (offscreen || expired) {
-                this.fadeOutBlackHole(e, offscreen ? 300 : 800);
+            const offscreen = container.y > cameraY + this.screenH + 300;
+            if (offscreen) {
+                this.fadeOutBlackHole(e, 300);
                 continue;
             }
 
