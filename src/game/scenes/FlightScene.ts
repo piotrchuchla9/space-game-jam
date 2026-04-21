@@ -20,7 +20,7 @@ export class FlightScene extends Scene {
   private launchTime: number = 0;
   private timerStarted: boolean = false;
   private currentZoom: number = 1.4;
-  private currentFollowOffsetY: number = 150;
+  private currentFollowOffsetY: number = 200;
   private flameSprites: Phaser.GameObjects.Ellipse[] = [];
   private shieldBubble!: Phaser.GameObjects.Graphics;
   private thrusterSound!: Phaser.Sound.BaseSound;
@@ -103,7 +103,7 @@ export class FlightScene extends Scene {
       this.rocket.body.position.x,
       this.rocket.body.position.y,
     );
-    this.cameras.main.startFollow(rocketContainer, false, 0.1, 0.1);
+    this.cameras.main.startFollow(rocketContainer, false, 0.1, 1.0);
     this.cameras.main.setFollowOffset(0, this.currentFollowOffsetY);
     this.cameras.main.setZoom(this.currentZoom);
 
@@ -371,16 +371,16 @@ export class FlightScene extends Scene {
     let targetOffsetY: number;
     if (speedDisplay <= 0) {
       targetZoom = 1.8;
-      targetOffsetY = 150;
+      targetOffsetY = 200;
     } else if (speedDisplay <= 40) {
       targetZoom = 1.3;
-      targetOffsetY = 250;
+      targetOffsetY = 300;
     } else if (speedDisplay <= 80) {
       targetZoom = 1.0;
-      targetOffsetY = 370;
+      targetOffsetY = 420;
     } else {
       targetZoom = 0.8;
-      targetOffsetY = 500;
+      targetOffsetY = 560;
     }
     const lerpFactor = Math.min(1, delta * 0.002);
     this.currentZoom += (targetZoom - this.currentZoom) * lerpFactor;
