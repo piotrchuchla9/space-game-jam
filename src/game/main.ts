@@ -47,7 +47,6 @@ const StartGame = (parent: string) => {
   if (typeof WavedashJS !== "undefined") {
     WavedashJS.init({ debug: true, deferEvents: true });
     WavedashJS.addEventListener(WavedashJS.Events.BACKEND_CONNECTED, () => {
-      console.log("Wavedash backend connected");
       GameState.wavedashReady = true;
     });
     WavedashJS.readyForEvents();

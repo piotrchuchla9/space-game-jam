@@ -276,18 +276,6 @@ export class FlightScene extends Scene {
 
     const inputState = this.inputManager.getState();
 
-    // Debug input every 60 frames
-    if (Math.random() < 0.02) {
-      console.log(
-        "Input state:",
-        inputState,
-        "Fuel:",
-        this.rocket.fuel,
-        "Pos:",
-        this.rocket.body.position.y,
-      );
-    }
-
     // Thrust
     this.isThrusting = inputState.thrust && this.rocket.fuel > 0;
     if (this.isThrusting) {
